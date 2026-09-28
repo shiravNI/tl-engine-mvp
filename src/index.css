@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700&display=swap');
+@import 'tailwindcss';
+
+/*
+ * TL Engine MVP design tokens — ported from the "Burnt Y2K" / "Soft Circuit"
+ * design system in the original Thought Leadership Engine app
+ * (src/theme/tokens.css there). Only the tokens/base styles this MVP's
+ * pages actually use are kept — no Mastermind-mode variant, no Tiptap
+ * editor styles (this MVP has no rich-text composer).
+ */
+:root {
+  /* Raw palette */
+  --tl-espresso: #261814;
+  --tl-umber: #6f3828;
+  --tl-rust: #a85132;
+  --tl-terracotta: #c77450;
+  --tl-clay: #d99b77;
+  --tl-sand: #e8cfb4;
+  --tl-oat: #f0e2d0;
+  --tl-cream: #faf5ec;
+  --tl-sage: #8b9071;
+  --tl-blush: #d7b4a8;
+
+  /* Accent — Rust leads chrome, links, active chips, icon accents */
+  --tl-accent: var(--tl-rust);
+  --tl-accent-dark: var(--tl-umber);
+  --tl-accent-05: rgba(168, 81, 50, 0.08);
+  --tl-accent-10: rgba(168, 81, 50, 0.16);
+  --tl-accent-soft-bg: rgba(217, 155, 119, 0.2);
+  --tl-accent-soft-border: rgba(168, 81, 50, 0.28);
+
+  /* Text */
+  --tl-ink: #261814;
+  --tl-body: #2c201c;
+  --tl-muted: #745f55;
+  --tl-muted-2: #93796c;
+  --tl-faint: #b9a293;
+
+  /* Surfaces & borders */
+  --tl-border: rgba(80, 48, 35, 0.16);
+  --tl-border-soft: rgba(80, 48, 35, 0.1);
+  --tl-surface: var(--tl-oat);
+  --tl-bg: var(--tl-cream);
+  --tl-chip-bg: rgba(250, 245, 236, 0.68);
+  --tl-skeleton: #e7d6c2;
+
+  /* Semantic feedback */
+  --tl-success-bg: rgba(139, 144, 113, 0.16);
+  --tl-success-fg: #5c6640;
+  --tl-success-border: rgba(139, 144, 113, 0.32);
+  --tl-warn-bg: rgba(199, 116, 80, 0.16);
+  --tl-warn-fg: #8a4a1f;
+  --tl-warn-border: rgba(199, 116, 80, 0.32);
+  --tl-danger-bg: rgba(156, 59, 46, 0.13);
+  --tl-danger-fg: #7a2e22;
+
+  /* Shape */
+  --tl-radius-lg: 14px;
+  --tl-radius-xl: 20px;
+  --tl-radius-2xl: 24px;
+  --tl-radius-pill: 999px;
+
+  /* Elevation */
+  --tl-shadow-soft: 0 18px 45px rgba(79, 43, 28, 0.1);
+  --tl-shadow-micro: 0 5px 0 rgba(38, 24, 20, 0.12);
+
+  /* Type */
+  --tl-font-body: 'Manrope', system-ui, sans-serif;
+  --tl-font-display: 'Syne', 'Manrope', system-ui, sans-serif;
+  --tl-font-mono: 'DM Mono', ui-monospace, monospace;
+  --tl-font: var(--tl-font-body);
+}
+
+@theme inline {
+  --color-accent: var(--tl-accent);
+  --color-accent-dark: var(--tl-accent-dark);
+  --color-accent-05: var(--tl-accent-05);
+  --color-accent-10: var(--tl-accent-10);
+  --color-accent-soft-bg: var(--tl-accent-soft-bg);
+  --color-accent-soft-border: var(--tl-accent-soft-border);
+
+  --color-espresso: var(--tl-espresso);
+  --color-umber: var(--tl-umber);
+  --color-rust: var(--tl-rust);
+  --color-terracotta: var(--tl-terracotta);
+  --color-clay: var(--tl-clay);
+  --color-sand: var(--tl-sand);
+  --color-oat: var(--tl-oat);
+  --color-cream: var(--tl-cream);
+  --color-sage: var(--tl-sage);
+  --color-blush: var(--tl-blush);
+
+  --color-ink: var(--tl-ink);
+  --color-body: var(--tl-body);
+  --color-muted: var(--tl-muted);
+  --color-muted-2: var(--tl-muted-2);
+  --color-faint: var(--tl-faint);
+  --color-border: var(--tl-border);
+  --color-border-soft: var(--tl-border-soft);
+  --color-surface: var(--tl-surface);
+  --color-bg: var(--tl-bg);
+  --color-chip: var(--tl-chip-bg);
+  --color-skeleton: var(--tl-skeleton);
+
+  --color-success-bg: var(--tl-success-bg);
+  --color-success-fg: var(--tl-success-fg);
+  --color-success-border: var(--tl-success-border);
+  --color-warn-bg: var(--tl-warn-bg);
+  --color-warn-fg: var(--tl-warn-fg);
+  --color-warn-border: var(--tl-warn-border);
+  --color-danger-bg: var(--tl-danger-bg);
+  --color-danger-fg: var(--tl-danger-fg);
+
+  --radius-lg: var(--tl-radius-lg);
+  --radius-xl: var(--tl-radius-xl);
+  --radius-2xl: var(--tl-radius-2xl);
+
+  --shadow-soft: var(--tl-shadow-soft);
+  --shadow-micro: var(--tl-shadow-micro);
+
+  --font-sans: var(--tl-font);
+  --font-display: var(--tl-font-display);
+  --font-mono: var(--tl-font-mono);
+}
+
+body {
+  background: var(--tl-bg);
+  color: var(--tl-ink);
+  font-family: var(--tl-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--tl-font-display);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+h1 {
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
