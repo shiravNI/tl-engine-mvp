@@ -59,17 +59,20 @@ export type ContentOrientation = 'personal_brand' | 'audience_sales'
 export const ORIENTATION_QUESTION_ID = 'q_orientation'
 export const IDENTITY_QUESTION_ID = 'q_identity'
 
+/** The skill's actual opening question (2.1 Professional Identity) is a
+ * real, open free-text question, not a style-preference tap — it's the
+ * literal seed for the domain-adaptive SAT round and the Voice Card's
+ * Identity Snapshot, so it has to be required and has to actually capture
+ * role/industry, not "how you show up" (that's what Persona Fit, later,
+ * already covers properly with full archetype descriptions — asking a
+ * thinner version of it here was redundant). */
 const IDENTITY_QUESTION: OnboardingQuestion = {
   id: 'q_identity',
   phaseId: 'identity',
-  prompt: 'Which best describes how you show up in your field?',
-  options: [
-    { id: 'practitioner', label: 'Practitioner — lessons from doing it', primary: true },
-    { id: 'educator', label: 'Educator — breaking things down' },
-    { id: 'storyteller', label: 'Storyteller — narrative first' },
-    { id: 'builder', label: 'Builder — documenting what you make' },
-  ],
-  followUpPrompt: "Say more — what's the one thing you know better than most people around you?",
+  type: 'text',
+  prompt:
+    "Tell me about what you do — your role, your company, your industry, how long you've been in this world. Talk to me like you're explaining it to someone smart who doesn't know your field.",
+  options: [],
 }
 
 /** The fork. `option.id` doubles as the literal `ContentOrientation` value —
