@@ -24,6 +24,18 @@ const QUESTIONS: OnboardingQuestion[] = [
 ]
 
 describe('deriveVoiceCard', () => {
+  it('does not treat a non-opinions-phase answer (identity/goals/etc.) as a quotable opinion', () => {
+    const questionsWithIdentity: OnboardingQuestion[] = [
+      { id: 'q_identity', phaseId: 'identity', prompt: 'Who are you?', options: [] },
+      ...QUESTIONS,
+    ]
+    const answers: InterviewAnswerInput[] = [
+      { questionId: 'q_identity', selectedOptionId: null, freeTextAnswer: 'I want to speak at conferences.' },
+    ]
+    const card = deriveVoiceCard(answers, questionsWithIdentity)
+    expect(card.opinions).toEqual([{ id: 'op_placeholder', quote: 'Next opinion lands here…', placeholder: true }])
+  })
+
   it('reports 0% completeness and a placeholder opinion with no answers at all', () => {
     const card = deriveVoiceCard([], QUESTIONS)
     expect(card.completenessPct).toBe(0)

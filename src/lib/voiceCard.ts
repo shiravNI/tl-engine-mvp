@@ -64,8 +64,14 @@ export function deriveVoiceCard(
   const completenessPct =
     totalQuestions === 0 ? 0 : Math.round((answeredQuestionIds.size / totalQuestions) * 100)
 
+  // Only the Opinions & POV round's own questions (the SAT round, the
+  // free-form Positioning/Hot-Takes questions) are actually opinion
+  // material — Identity/Goals/Voice/Format/Sources answers are real
+  // context, but they're not opinions, and dumping them in here read as
+  // "just what I'm typing," not an actual quotable take.
+  const opinionQuestionIds = new Set(questions.filter((q) => q.phaseId === 'opinions').map((q) => q.id))
   const opinions: VoiceCardOpinion[] = answers
-    .filter((a) => activeQuestionIds.has(a.questionId) && Boolean(a.freeTextAnswer?.trim()))
+    .filter((a) => opinionQuestionIds.has(a.questionId) && Boolean(a.freeTextAnswer?.trim()))
     .map((a) => ({
       id: `op_${a.questionId}`,
       quote: `"${truncate(a.freeTextAnswer!.trim(), SNIPPET_MAX_LEN)}"`,
