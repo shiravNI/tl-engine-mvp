@@ -81,3 +81,14 @@ export async function humanizeDraft(draftId: string): Promise<DraftFunctionResul
   if (data?.error) return { error: data.error as string }
   return { draft: rowToDraft(data.draft as DraftRow) }
 }
+
+/** Saves the editor's own edits back to the row (RLS scopes this to the
+ * caller's own draft, same as every other write in this app). Fire-and-
+ * forget from the editor's perspective — the textarea is already the
+ * source of truth locally, this just persists it. */
+export async function updateDraftText(draftId: string, paragraphs: string[]): Promise<void> {
+  await supabase
+    .from('drafts')
+    .update({ paragraphs, excerpt: paragraphs[0]?.slice(0, 140) ?? '' })
+    .eq('id', draftId)
+}
