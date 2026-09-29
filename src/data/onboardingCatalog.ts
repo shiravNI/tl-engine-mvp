@@ -34,7 +34,7 @@ export const ONBOARDING_PHASES: OnboardingPhaseDef[] = [
 ]
 
 /** Every phase with at least one real, tappable question in this build. */
-export const INTERACTIVE_PHASE_IDS = ['identity', 'goals', 'voice', 'opinions'] as const
+export const INTERACTIVE_PHASE_IDS = ['identity', 'goals', 'voice', 'opinions', 'format', 'sources'] as const
 
 export interface OnboardingQuestionOption {
   id: string
@@ -48,6 +48,10 @@ export interface OnboardingQuestion {
   prompt: string
   options: OnboardingQuestionOption[]
   followUpPrompt?: string
+  /** `'text'` questions (the free-form Positioning + Hot-Takes round, and
+   * Sources) have no tap options at all — just the prompt and a required
+   * text answer. Defaults to `'choice'` when omitted. */
+  type?: 'choice' | 'text'
 }
 
 export type ContentOrientation = 'personal_brand' | 'audience_sales'
@@ -179,6 +183,183 @@ const OPINION_QUESTIONS_AUDIENCE_SALES: OnboardingQuestion[] = [
   },
 ]
 
+/** Section 2.5's Positioning questions (TL variant) — free-text, no tap
+ * options, generic across any TL regardless of domain. This is what the
+ * Personal Positioning Statement is actually built from. */
+const POSITIONING_QUESTIONS_TL: OnboardingQuestion[] = [
+  {
+    id: 'q_pos_tl_1',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "If you could be known for one belief or idea in your field — something that's distinctly yours — what would it be?",
+    options: [],
+  },
+  {
+    id: 'q_pos_tl_2',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "What's a hill you'd die on professionally? Something you'd argue for even if people pushed back?",
+    options: [],
+  },
+  {
+    id: 'q_pos_tl_3',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "When you read LinkedIn posts in your field, what's the thing that's almost never said — but should be?",
+    options: [],
+  },
+]
+
+/** Section 2.5's Positioning questions (Social Seller variant) — the
+ * reader is evaluating whether this person understands their problem, not
+ * following them as a person. */
+const POSITIONING_QUESTIONS_SOCIAL_SELLER: OnboardingQuestion[] = [
+  {
+    id: 'q_pos_ss_1',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: 'What do the people you sell to need to believe about you before they trust your point of view?',
+    options: [],
+  },
+  {
+    id: 'q_pos_ss_2',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "What's a hill you'd die on about how your buyers should be thinking about this problem?",
+    options: [],
+  },
+  {
+    id: 'q_pos_ss_3',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "When you read content in your space, what's the thing that's almost never said about the buyer's actual situation — but should be?",
+    options: [],
+  },
+]
+
+/** Topic Area 5 — Hot Takes. Free-text by design (the skill is explicit:
+ * "don't present options for this section"), and generic across any
+ * domain — this is where the spiciest, most distinctive material tends to
+ * live. */
+const HOT_TAKE_QUESTIONS: OnboardingQuestion[] = [
+  {
+    id: 'q_hot_take_1',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "What's an opinion you have about your industry that most people would push back on?",
+    options: [],
+  },
+  {
+    id: 'q_hot_take_2',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "What's something everyone in your field does that you think is a waste of time?",
+    options: [],
+  },
+  {
+    id: 'q_hot_take_3',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "Finish this: \"I'm probably wrong about this, but I think _____\"",
+    options: [],
+  },
+]
+
+/** Section 2.7 — Format Preferences, the rapid-fire tap round. Entirely
+ * generic (post mechanics, not domain-dependent), so this is static —
+ * matches the skill's own list exactly. */
+const FORMAT_QUESTIONS: OnboardingQuestion[] = [
+  {
+    id: 'q_format_length',
+    phaseId: 'format',
+    prompt: 'Post length?',
+    options: [
+      { id: 'short', label: 'Short & punchy', primary: true },
+      { id: 'long', label: 'Long & narrative' },
+      { id: 'depends', label: 'Depends on the topic' },
+    ],
+  },
+  {
+    id: 'q_format_emojis',
+    phaseId: 'format',
+    prompt: 'Emojis?',
+    options: [
+      { id: 'yes', label: 'Yes' },
+      { id: 'never', label: 'Never', primary: true },
+      { id: 'sparingly', label: 'Sparingly' },
+    ],
+  },
+  {
+    id: 'q_format_structure',
+    phaseId: 'format',
+    prompt: 'Structure?',
+    options: [
+      { id: 'bullets', label: 'Bullets & lists' },
+      { id: 'prose', label: 'Flowing prose', primary: true },
+      { id: 'mix', label: 'Mix' },
+    ],
+  },
+  {
+    id: 'q_format_cta',
+    phaseId: 'format',
+    prompt: 'End with a question?',
+    options: [
+      { id: 'always', label: 'Always' },
+      { id: 'sometimes', label: 'Sometimes', primary: true },
+      { id: 'never', label: 'Never' },
+    ],
+  },
+  {
+    id: 'q_format_pov',
+    phaseId: 'format',
+    prompt: 'Voice?',
+    options: [
+      { id: 'personal', label: 'First-person & personal', primary: true },
+      { id: 'observational', label: 'More observational' },
+    ],
+  },
+  {
+    id: 'q_format_personal_life',
+    phaseId: 'format',
+    prompt: 'Personal life?',
+    options: [
+      { id: 'share', label: 'Share it' },
+      { id: 'professional', label: 'Keep it professional' },
+      { id: 'selectively', label: 'Selectively', primary: true },
+    ],
+  },
+  {
+    id: 'q_format_vulnerable',
+    phaseId: 'format',
+    prompt: 'Would you post something vulnerable if it was true and useful?',
+    options: [
+      { id: 'yes', label: 'Yes' },
+      { id: 'no', label: 'No' },
+      { id: 'depends', label: 'Depends', primary: true },
+    ],
+  },
+  {
+    id: 'q_format_humor',
+    phaseId: 'format',
+    prompt: 'Humor?',
+    options: [
+      { id: 'always', label: 'Always' },
+      { id: 'sometimes', label: 'Sometimes', primary: true },
+      { id: 'fits', label: 'Only when it fits' },
+    ],
+  },
+]
+
+/** Section 2.8 — Sources & Staying Current. Feeds a future newsletter-style
+ * feature and the synthesized Voice Card's Trusted Sources section. */
+const SOURCES_QUESTION: OnboardingQuestion = {
+  id: 'q_sources',
+  phaseId: 'sources',
+  type: 'text',
+  prompt: 'What do you read, listen to, or watch to stay sharp? Newsletters, podcasts, reports, people you follow?',
+  options: [],
+}
+
 /** The active question set for a live interview, given the orientation
  * answer so far (`null`/`undefined` before it's been answered yet, which
  * defaults to the Personal Brand set so the interview always has *some*
@@ -186,7 +367,18 @@ const OPINION_QUESTIONS_AUDIENCE_SALES: OnboardingQuestion[] = [
 export function getInterviewQuestions(orientation: ContentOrientation | null | undefined): OnboardingQuestion[] {
   const opinionQuestions =
     orientation === 'audience_sales' ? OPINION_QUESTIONS_AUDIENCE_SALES : OPINION_QUESTIONS_PERSONAL_BRAND
-  return [IDENTITY_QUESTION, ORIENTATION_QUESTION, VOICE_QUESTION, ...opinionQuestions]
+  const positioningQuestions =
+    orientation === 'audience_sales' ? POSITIONING_QUESTIONS_SOCIAL_SELLER : POSITIONING_QUESTIONS_TL
+  return [
+    IDENTITY_QUESTION,
+    ORIENTATION_QUESTION,
+    VOICE_QUESTION,
+    ...opinionQuestions,
+    ...positioningQuestions,
+    ...HOT_TAKE_QUESTIONS,
+    ...FORMAT_QUESTIONS,
+    SOURCES_QUESTION,
+  ]
 }
 
 /** Default/static question list — for anything that needs *a* reasonable

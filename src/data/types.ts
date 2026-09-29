@@ -28,6 +28,33 @@ export interface RoastFlag {
   comment: string
 }
 
+/** The real, AI-synthesized Voice Card document — `voice_cards.synthesized`
+ * (jsonb), produced by the `synthesize-voice-card` edge function. Replaces
+ * the thin, mechanically-derived card once a real synthesis has run at
+ * least once (`voice_cards.synthesized_at` is non-null). */
+export interface SynthesizedVoiceCard {
+  positioningStatement: string
+  identity: { roleCompany: string; industry: string; coreExpertise: string; linkedinGoal: string }
+  persona: {
+    primary: { name: string; description: string }
+    secondary: { name: string; description: string }
+  }
+  voiceTone: {
+    adjectives: string[]
+    communicationStyle: string
+    corePrinciple: string
+    whatToAvoid: string[]
+    signaturePatterns: string[]
+  }
+  contentPillars: { title: string; description: string; quote: string }[]
+  formatPreferences: { lengths: string; structure: string; formatting: string; cta: string }
+  opinions: string[]
+  signatureQuotes: string[]
+  trustedSources: string[]
+  audience: { primary: string; secondary: string }
+  memorySummary: string
+}
+
 /** The subset of `public.drafts` columns this app reads/writes — that
  * table carries many more columns shared with the archived exploration
  * app (format, origin, scheduled_for, image_url, ...); this MVP leaves all

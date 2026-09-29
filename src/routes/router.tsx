@@ -13,6 +13,9 @@ const InterviewPage = lazy(() =>
   import('@/features/onboarding/InterviewPage').then((m) => ({ default: m.InterviewPage })),
 )
 const DrafterPage = lazy(() => import('@/features/drafter/DrafterPage').then((m) => ({ default: m.DrafterPage })))
+const VoiceCardPage = lazy(() =>
+  import('@/features/voice-card/VoiceCardPage').then((m) => ({ default: m.VoiceCardPage })),
+)
 
 // Matches vite.config.ts's GitHub Pages base path — react-router's own
 // basename is separate from Vite's asset base and has to be set explicitly
@@ -62,6 +65,22 @@ export const router = createBrowserRouter([
           <main className="flex-1">
             <Suspense fallback={<RouteFallback />}>
               <DrafterPage />
+            </Suspense>
+          </main>
+        </div>
+      </RequireAuth>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/voice-card',
+    element: (
+      <RequireAuth>
+        <div className="flex min-h-screen flex-col">
+          <TopBar />
+          <main className="flex-1">
+            <Suspense fallback={<RouteFallback />}>
+              <VoiceCardPage />
             </Suspense>
           </main>
         </div>

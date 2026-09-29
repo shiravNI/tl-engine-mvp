@@ -9,6 +9,9 @@ import { upsertInterviewAnswer, upsertVoiceCard } from '@/data/services/onboardi
 import { ORIENTATION_QUESTION_ID, type ContentOrientation } from '@/data/onboardingCatalog'
 import { useAuth } from '@/state/AuthContext'
 
+const ALLOWED_EXTENSIONS = ['txt', 'md', 'pdf']
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB — generous for a PDF export, still bounded
+
 interface VoiceCardUploadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -33,6 +36,8 @@ export function VoiceCardUploadDialog({ open, onOpenChange }: VoiceCardUploadDia
   const [orientationAutoDetected, setOrientationAutoDetected] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [extracting, setExtracting] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
 
   function handleTextChange(next: string) {
     setText(next)
@@ -42,8 +47,31 @@ export function VoiceCardUploadDialog({ open, onOpenChange }: VoiceCardUploadDia
   }
 
   async function handleFileChosen(file: File) {
-    const content = await file.text()
-    handleTextChange(content)
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      setError(`Only .txt, .md, and .pdf files are supported (got .${ext || 'unknown'}).`)
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setError('File is too large — 10MB max.')
+      return
+    }
+    setError('')
+    setExtracting(true)
+    try {
+      let content: string
+      if (ext === 'pdf') {
+        const { extractPdfText } = await import('@/lib/pdfText')
+        content = await extractPdfText(file)
+      } else {
+        content = await file.text()
+      }
+      handleTextChange(content)
+    } catch {
+      setError("Couldn't read that file — try pasting the text directly instead.")
+    } finally {
+      setExtracting(false)
+    }
   }
 
   async function handleSubmit() {
@@ -98,7 +126,7 @@ export function VoiceCardUploadDialog({ open, onOpenChange }: VoiceCardUploadDia
       open={open}
       onOpenChange={onOpenChange}
       title="Upload an existing Voice Card"
-      description="Paste the markdown, or upload the .txt/.md file. We'll pull out what we can, then route you into a few real questions to fill any gaps."
+      description="Paste the text, upload a .txt/.md/.pdf file, or drag one in. We'll pull out what we can, then route you into a few real questions to fill any gaps."
       footer={
         <>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={saving}>
@@ -115,14 +143,14 @@ export function VoiceCardUploadDialog({ open, onOpenChange }: VoiceCardUploadDia
           <span className="font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">
             Voice Card text
           </span>
-          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
+          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={extracting}>
             <Icon name="upload" className="h-[13px] w-[13px]" />
-            Upload .txt/.md
+            {extracting ? 'Reading…' : 'Upload .txt/.md/.pdf'}
           </Button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".txt,.md,text/plain,text/markdown"
+            accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0]
@@ -131,13 +159,36 @@ export function VoiceCardUploadDialog({ open, onOpenChange }: VoiceCardUploadDia
             }}
           />
         </div>
-        <textarea
-          value={text}
-          onChange={(e) => handleTextChange(e.target.value)}
-          placeholder={'## Personal Positioning Statement\n...\n\n## Opinions & POV\n- ...'}
-          rows={8}
-          className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[12.5px] text-ink outline-none placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_4px_var(--tl-accent-10)]"
-        />
+        <div
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragActive(true)
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setDragActive(false)
+            const file = e.dataTransfer.files?.[0]
+            if (file) void handleFileChosen(file)
+          }}
+          className={
+            'relative rounded-xl border transition-colors ' +
+            (dragActive ? 'border-accent bg-accent-soft-bg' : 'border-border')
+          }
+        >
+          <textarea
+            value={text}
+            onChange={(e) => handleTextChange(e.target.value)}
+            placeholder={
+              dragActive
+                ? 'Drop your file here…'
+                : '## Personal Positioning Statement\n...\n\n## Opinions & POV\n- ...\n\n(or drag a .txt/.md/.pdf file here)'
+            }
+            rows={8}
+            disabled={extracting}
+            className="w-full rounded-xl bg-transparent px-3.5 py-2.5 text-[12.5px] text-ink outline-none placeholder:text-muted focus:shadow-[0_0_0_4px_var(--tl-accent-10)]"
+          />
+        </div>
         <label className="flex items-center gap-2.5">
           <Checkbox checked={orientationOverride} onCheckedChange={setOrientationOverride} />
           <span className="text-[12.5px] text-body">

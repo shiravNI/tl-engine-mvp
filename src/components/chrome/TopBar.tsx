@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Icon } from '@/components/icons/Icon'
 import { Avatar } from '@/components/primitives/Avatar'
 import { Button } from '@/components/primitives/Button'
@@ -16,6 +17,12 @@ export function TopBar() {
         TL
       </div>
       <span className="font-display text-[14px] font-bold text-ink">TL Engine</span>
+      <Link to="/" className="text-[12.5px] font-semibold text-muted hover:text-ink">
+        Drafter
+      </Link>
+      <Link to="/voice-card" className="text-[12.5px] font-semibold text-muted hover:text-ink">
+        Voice Card
+      </Link>
       <div className="flex-1" />
       {profile && (
         <>

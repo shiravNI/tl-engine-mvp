@@ -148,20 +148,49 @@ describe('deriveVoiceCard — content orientation branching', () => {
 })
 
 describe('getInterviewQuestions', () => {
-  it('returns the Personal Brand opinion questions by default (null/undefined orientation)', () => {
+  it('returns the Personal Brand SAT-round + positioning questions by default (null/undefined orientation)', () => {
     const questions = getInterviewQuestions(null)
     const opinionIds = questions.filter((q) => q.phaseId === 'opinions').map((q) => q.id)
-    expect(opinionIds).toEqual(['q_opinion_pb_1', 'q_opinion_pb_2'])
+    expect(opinionIds).toEqual([
+      'q_opinion_pb_1',
+      'q_opinion_pb_2',
+      'q_pos_tl_1',
+      'q_pos_tl_2',
+      'q_pos_tl_3',
+      'q_hot_take_1',
+      'q_hot_take_2',
+      'q_hot_take_3',
+    ])
   })
 
-  it('swaps in the Audience/Sales-Led opinion questions once that orientation is chosen', () => {
+  it('swaps in the Audience/Sales-Led SAT-round + positioning questions once that orientation is chosen', () => {
     const questions = getInterviewQuestions('audience_sales')
     const opinionIds = questions.filter((q) => q.phaseId === 'opinions').map((q) => q.id)
-    expect(opinionIds).toEqual(['q_opinion_as_1', 'q_opinion_as_2', 'q_opinion_as_3', 'q_opinion_as_4'])
+    expect(opinionIds).toEqual([
+      'q_opinion_as_1',
+      'q_opinion_as_2',
+      'q_opinion_as_3',
+      'q_opinion_as_4',
+      'q_pos_ss_1',
+      'q_pos_ss_2',
+      'q_pos_ss_3',
+      'q_hot_take_1',
+      'q_hot_take_2',
+      'q_hot_take_3',
+    ])
   })
 
-  it('always includes identity, orientation, and voice questions ahead of the opinions round', () => {
+  it('always includes identity, goals, voice, opinions, format, and sources in phase order', () => {
     const questions = getInterviewQuestions('personal_brand')
-    expect(questions.map((q) => q.phaseId)).toEqual(['identity', 'goals', 'voice', 'opinions', 'opinions'])
+    const phaseOrder = [...new Set(questions.map((q) => q.phaseId))]
+    expect(phaseOrder).toEqual(['identity', 'goals', 'voice', 'opinions', 'format', 'sources'])
+  })
+
+  it('marks the positioning and hot-take questions as free-text, and format/sources questions as choice unless noted', () => {
+    const questions = getInterviewQuestions('personal_brand')
+    const sources = questions.find((q) => q.id === 'q_sources')
+    expect(sources?.type).toBe('text')
+    const format = questions.find((q) => q.id === 'q_format_length')
+    expect(format?.type).toBeUndefined()
   })
 })

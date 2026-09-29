@@ -8,6 +8,8 @@ import {
   upsertVoiceCard,
 } from '@/data/services/onboardingService'
 import { deriveVoiceCard, readContentOrientation, type InterviewAnswerInput } from '@/lib/voiceCard'
+import { buildInterviewTranscript } from '@/lib/interviewTranscript'
+import { synthesizeVoiceCard } from '@/data/services/voiceCardSynthesisService'
 import { useAuth } from '@/state/AuthContext'
 import { Icon } from '@/components/icons/Icon'
 import { Button } from '@/components/primitives/Button'
@@ -35,6 +37,7 @@ export function InterviewPage() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [freeText, setFreeText] = useState('')
   const [saving, setSaving] = useState(false)
+  const [synthesizing, setSynthesizing] = useState(false)
 
   // Which Opinions & POV question set is active depends on the *persisted*
   // answer to the orientation fork (`q_orientation`) — not the in-progress
@@ -91,10 +94,13 @@ export function InterviewPage() {
     [livePreviewAnswers, questions],
   )
 
-  // "Say more" is required, not optional — a tap-only answer with no
-  // elaboration is exactly the "thin voice card" the interview exists to
-  // avoid producing.
-  const canContinue = Boolean(selectedOption) && freeText.trim().length > 0
+  const isTextQuestion = question.type === 'text'
+
+  // "Say more" is encouraged, not gated on a `choice` question — forcing
+  // elaboration on every single tap (including throwaway ones like the
+  // orientation fork) was real, reported friction. A `text` question has
+  // no tap to fall back on, so its own answer is what's required.
+  const canContinue = isTextQuestion ? freeText.trim().length > 0 : Boolean(selectedOption)
 
   const currentPhaseTitle = ONBOARDING_PHASES.find((p) => p.id === question.phaseId)?.title ?? ''
 
@@ -147,8 +153,18 @@ export function InterviewPage() {
     if (!userId || saving) return
     setSaving(true)
     try {
-      await persistCurrentAnswer()
+      const finalAnswers = await persistCurrentAnswer()
       if (isLast) {
+        // Real Phase-3 synthesis — the thin, deterministic card from
+        // `persistCurrentAnswer` above already saved as a fallback, so a
+        // failure here (most likely: the API key isn't configured yet)
+        // still leaves the account with a usable, if thinner, Voice Card.
+        setSynthesizing(true)
+        const transcript = buildInterviewTranscript(finalAnswers, questions)
+        const result = await synthesizeVoiceCard(transcript)
+        if ('error' in result) console.error('[InterviewPage] synthesis failed:', result.error)
+        setSynthesizing(false)
+
         await upsertOnboardingState(userId, { completedAt: new Date().toISOString() })
         await refreshOnboardingState()
         navigate('/')
@@ -221,8 +237,12 @@ export function InterviewPage() {
             <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">
               {currentPhaseTitle} · question {questionNumberLabel(exchangeIndex, questions.length)}
             </p>
-            <h1 className="text-[25px] font-bold tracking-tight">No overthinking — first gut reaction.</h1>
-            <p className="mt-1.5 text-[13px] text-body">Tap one. You can always add nuance right after.</p>
+            <h1 className="text-[25px] font-bold tracking-tight">
+              {isTextQuestion ? 'In your own words — no wrong answer.' : 'No overthinking — first gut reaction.'}
+            </h1>
+            <p className="mt-1.5 text-[13px] text-body">
+              {isTextQuestion ? 'This is where the real material comes from.' : 'Tap one. You can always add nuance right after.'}
+            </p>
           </div>
 
           <div className="flex max-w-[600px] flex-col gap-3.5">
@@ -232,25 +252,28 @@ export function InterviewPage() {
                 <p className="text-[13px] text-body">{question.prompt}</p>
               </Card>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 pl-9">
-              {question.options.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setSelectedOption(opt.id)}
-                  className={cx(
-                    'rounded-lg border px-3 py-3 text-left text-[12.5px] font-semibold leading-tight transition-colors',
-                    selectedOption === opt.id
-                      ? 'border-accent bg-accent text-cream'
-                      : 'border-border bg-surface text-ink hover:bg-bg',
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
 
-            {question.followUpPrompt && (
+            {!isTextQuestion && (
+              <div className="grid grid-cols-2 gap-2.5 pl-9">
+                {question.options.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setSelectedOption(opt.id)}
+                    className={cx(
+                      'rounded-lg border px-3 py-3 text-left text-[12.5px] font-semibold leading-tight transition-colors',
+                      selectedOption === opt.id
+                        ? 'border-accent bg-accent text-cream'
+                        : 'border-border bg-surface text-ink hover:bg-bg',
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {question.followUpPrompt && !isTextQuestion && (
               <div className="mt-1.5 flex items-start gap-2.5">
                 <Avatar initials="TL" size={26} />
                 <Card className="rounded-tl-[4px] px-3.5 py-2.5">
@@ -260,16 +283,18 @@ export function InterviewPage() {
             )}
 
             <div className="pl-9">
-              <div className="mb-1 flex items-baseline justify-between">
-                <span className="font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">
-                  Required — a tap alone makes a thin Voice Card
-                </span>
-              </div>
+              {!isTextQuestion && (
+                <div className="mb-1 flex items-baseline justify-between">
+                  <span className="font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">
+                    Optional — but the real substance comes from this, not the tap
+                  </span>
+                </div>
+              )}
               <textarea
                 value={freeText}
                 onChange={(e) => setFreeText(e.target.value)}
                 placeholder="Say more, in your own words…"
-                rows={3}
+                rows={isTextQuestion ? 6 : 3}
                 className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_4px_var(--tl-accent-10)]"
               />
             </div>
@@ -284,7 +309,7 @@ export function InterviewPage() {
               Back
             </Button>
             <Button variant="primary" onClick={() => void handleContinue()} disabled={saving || !canContinue}>
-              {saving ? 'Saving…' : isLast ? 'Finish' : 'Continue'}
+              {synthesizing ? 'Writing your Voice Card…' : saving ? 'Saving…' : isLast ? 'Finish' : 'Continue'}
               <Icon name="chev" className="h-[15px] w-[15px]" />
             </Button>
             <span className="text-[12px] text-muted">

@@ -90,12 +90,19 @@ create policy "interview_answers_owner" on public.interview_answers
 -- index (interview_answers_user_id_question_id_key); no separate index.
 
 -- ----------------------------------------------------------------------------
--- voice_cards — one row per user, the live-derived Voice Card
--- (src/lib/voiceCard.ts's `deriveVoiceCard` output, upserted on every
--- interview "Continue"). `imported_from_text` was added for this MVP's
--- "upload an existing Voice Card" flow (src/lib/voiceCardImport.ts): the
--- raw pasted/uploaded text, kept verbatim for reference even after the
--- heuristic pre-fill is superseded by real interview answers.
+-- voice_cards — one row per user. `pov_fingerprint`/`completeness_pct`/
+-- `completeness_note`/`role_label` are the thin, deterministic fallback
+-- (src/lib/voiceCard.ts's `deriveVoiceCard`, upserted on every interview
+-- "Continue" so there's always something usable). `synthesized` is the
+-- REAL Voice Card — the `synthesize-voice-card` edge function's structured
+-- output (positioning statement, persona, voice/tone profile, content
+-- pillars, opinions, signature quotes, trusted sources — see
+-- `SynthesizedVoiceCard` in src/data/types.ts), written once at the end of
+-- the interview. `synthesized_at` is null until that's actually run.
+-- `imported_from_text` was added for this MVP's "upload an existing Voice
+-- Card" flow (src/lib/voiceCardImport.ts): the raw pasted/uploaded text,
+-- kept verbatim as extra synthesis material even after the heuristic
+-- pre-fill is superseded by real interview answers.
 -- ----------------------------------------------------------------------------
 create table public.voice_cards (
   user_id             uuid primary key references auth.users(id) on delete cascade,
@@ -108,6 +115,8 @@ create table public.voice_cards (
   -- focused) — the fork answered by q_orientation in the interview catalog.
   content_orientation text check (content_orientation in ('personal_brand', 'audience_sales')),
   imported_from_text  text,
+  synthesized         jsonb,
+  synthesized_at      timestamptz,
   updated_at          timestamptz not null default now()
 );
 alter table public.voice_cards enable row level security;
