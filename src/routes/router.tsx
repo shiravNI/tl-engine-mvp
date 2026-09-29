@@ -14,6 +14,11 @@ const InterviewPage = lazy(() =>
 )
 const DrafterPage = lazy(() => import('@/features/drafter/DrafterPage').then((m) => ({ default: m.DrafterPage })))
 
+// Matches vite.config.ts's GitHub Pages base path — react-router's own
+// basename is separate from Vite's asset base and has to be set explicitly
+// too, or route matching breaks once the app is served under a subpath.
+const basename = import.meta.env.BASE_URL !== '/' ? import.meta.env.BASE_URL : undefined
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -65,4 +70,4 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   { path: '*', element: <Navigate to="/" replace /> },
-])
+], { basename })
