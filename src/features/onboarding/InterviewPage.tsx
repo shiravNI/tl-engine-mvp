@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ONBOARDING_PHASES, getInterviewQuestions, questionNumberLabel } from '@/data/onboardingCatalog'
+import {
+  ONBOARDING_PHASES,
+  getInterviewQuestions,
+  questionNumberLabel,
+  IDENTITY_QUESTION_ID,
+  type OnboardingQuestion,
+} from '@/data/onboardingCatalog'
 import {
   fetchInterviewAnswers,
+  fetchOnboardingState,
   upsertInterviewAnswer,
   upsertOnboardingState,
   upsertVoiceCard,
@@ -10,6 +17,7 @@ import {
 import { deriveVoiceCard, readContentOrientation, type InterviewAnswerInput } from '@/lib/voiceCard'
 import { buildInterviewTranscript } from '@/lib/interviewTranscript'
 import { synthesizeVoiceCard } from '@/data/services/voiceCardSynthesisService'
+import { generateInterviewQuestions } from '@/data/services/generateInterviewQuestionsService'
 import { useAuth } from '@/state/AuthContext'
 import { Icon } from '@/components/icons/Icon'
 import { Button } from '@/components/primitives/Button'
@@ -38,23 +46,34 @@ export function InterviewPage() {
   const [freeText, setFreeText] = useState('')
   const [saving, setSaving] = useState(false)
   const [synthesizing, setSynthesizing] = useState(false)
+  const [dynamicOpinionQuestions, setDynamicOpinionQuestions] = useState<OnboardingQuestion[] | null>(null)
+  const [generatingQuestions, setGeneratingQuestions] = useState(false)
+  const generationAttempted = useRef(false)
 
   // Which Opinions & POV question set is active depends on the *persisted*
   // answer to the orientation fork (`q_orientation`) — not the in-progress
   // live selection, so the active list only ever changes once that
   // question's own "Continue" has actually saved it.
   const persistedOrientation = useMemo(() => readContentOrientation(Array.from(answers.values())), [answers])
-  const questions = useMemo(() => getInterviewQuestions(persistedOrientation), [persistedOrientation])
+  const questions = useMemo(
+    () => getInterviewQuestions(persistedOrientation, dynamicOpinionQuestions ?? undefined),
+    [persistedOrientation, dynamicOpinionQuestions],
+  )
   const question = questions[exchangeIndex]
   const isLast = exchangeIndex === questions.length - 1
 
   useEffect(() => {
     if (!userId) return
     let cancelled = false
-    fetchInterviewAnswers(userId).then((existing) => {
+    Promise.all([fetchInterviewAnswers(userId), fetchOnboardingState(userId)]).then(([existing, state]) => {
       if (cancelled) return
       const map = new Map(existing.map((a) => [a.questionId, a] as const))
-      const activeQuestions = getInterviewQuestions(readContentOrientation(existing))
+      const persistedDynamic = state?.generatedOpinionQuestions ?? null
+      if (persistedDynamic && persistedDynamic.length > 0) {
+        setDynamicOpinionQuestions(persistedDynamic)
+        generationAttempted.current = true
+      }
+      const activeQuestions = getInterviewQuestions(readContentOrientation(existing), persistedDynamic ?? undefined)
       const firstUnanswered = activeQuestions.findIndex((q) => {
         const a = map.get(q.id)
         return !a || (!a.selectedOptionId && !a.freeTextAnswer?.trim())
@@ -137,7 +156,10 @@ export function InterviewPage() {
     setAnswers(nextAnswers)
 
     const nextAnswerList = Array.from(nextAnswers.values())
-    const card = deriveVoiceCard(nextAnswerList, getInterviewQuestions(readContentOrientation(nextAnswerList)))
+    const card = deriveVoiceCard(
+      nextAnswerList,
+      getInterviewQuestions(readContentOrientation(nextAnswerList), dynamicOpinionQuestions ?? undefined),
+    )
     await upsertVoiceCard(userId, {
       roleLabel: profile?.title ?? '',
       povFingerprint: card.povFingerprint,
@@ -169,6 +191,30 @@ export function InterviewPage() {
         await refreshOnboardingState()
         navigate('/')
         return
+      }
+      // Right before entering the SAT round for the first time, try to
+      // personalize it for real (linkedin-voice-setup's "CRITICAL:
+      // generate all questions dynamically" instruction) — this is the
+      // one moment we know both the identity answer and the orientation,
+      // and it's still ahead of the Voice question, so there's no
+      // visible wait if it resolves quickly.
+      const nextQuestion = questions[exchangeIndex + 1]
+      const enteringOpinionsPhase = nextQuestion?.phaseId === 'opinions' && question.phaseId !== 'opinions'
+      if (enteringOpinionsPhase && !generationAttempted.current) {
+        generationAttempted.current = true
+        setGeneratingQuestions(true)
+        const identityAnswer = finalAnswers.get(IDENTITY_QUESTION_ID)?.freeTextAnswer?.trim() || ''
+        const goalAnswer = finalAnswers.get(question.id)?.freeTextAnswer?.trim() || ''
+        if (identityAnswer && persistedOrientation) {
+          const result = await generateInterviewQuestions(identityAnswer, goalAnswer, persistedOrientation)
+          if ('questions' in result && result.questions.length > 0) {
+            setDynamicOpinionQuestions(result.questions)
+            await upsertOnboardingState(userId, { generatedOpinionQuestions: result.questions })
+          } else if ('error' in result) {
+            console.error('[InterviewPage] question generation failed, using generic set:', result.error)
+          }
+        }
+        setGeneratingQuestions(false)
       }
       setExchangeIndex((i) => i + 1)
     } finally {
@@ -309,7 +355,15 @@ export function InterviewPage() {
               Back
             </Button>
             <Button variant="primary" onClick={() => void handleContinue()} disabled={saving || !canContinue}>
-              {synthesizing ? 'Writing your Voice Card…' : saving ? 'Saving…' : isLast ? 'Finish' : 'Continue'}
+              {synthesizing
+                ? 'Writing your Voice Card…'
+                : generatingQuestions
+                  ? 'Personalizing your questions…'
+                  : saving
+                    ? 'Saving…'
+                    : isLast
+                      ? 'Finish'
+                      : 'Continue'}
               <Icon name="chev" className="h-[15px] w-[15px]" />
             </Button>
             <span className="text-[12px] text-muted">

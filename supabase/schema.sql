@@ -53,14 +53,19 @@ create policy "profiles_owner" on public.profiles
 -- progress. This MVP only ever reads/writes `completed_at` and `skipped`
 -- (`current_phase_index` is left at its default; this build doesn't resume
 -- mid-phase by index, it re-derives "where you left off" from
--- interview_answers instead).
+-- interview_answers instead). `generated_opinion_questions` holds the real,
+-- domain-personalized SAT-round questions from
+-- `generate-interview-questions` once generated, so resuming the interview
+-- shows the SAME set rather than a freshly (and differently) regenerated
+-- one — null until generation has run and succeeded at least once.
 -- ----------------------------------------------------------------------------
 create table public.onboarding_state (
-  user_id             uuid primary key references auth.users(id) on delete cascade,
-  current_phase_index int not null default 1,
-  completed_at        timestamptz,
-  skipped             boolean not null default false,
-  updated_at          timestamptz not null default now()
+  user_id                    uuid primary key references auth.users(id) on delete cascade,
+  current_phase_index        int not null default 1,
+  completed_at               timestamptz,
+  skipped                    boolean not null default false,
+  generated_opinion_questions jsonb,
+  updated_at                 timestamptz not null default now()
 );
 alter table public.onboarding_state enable row level security;
 create policy "onboarding_state_owner" on public.onboarding_state

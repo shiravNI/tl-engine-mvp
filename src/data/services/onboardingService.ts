@@ -7,12 +7,17 @@
 import { supabase } from '@/lib/supabaseClient'
 import type { InterviewAnswerInput } from '@/lib/voiceCard'
 import type { VoiceCardOpinion } from '@/data/types'
-import type { ContentOrientation } from '@/data/onboardingCatalog'
+import type { ContentOrientation, OnboardingQuestion } from '@/data/onboardingCatalog'
 
 export interface OnboardingState {
   currentPhaseIndex: number
   completedAt: string | null
   skipped: boolean
+  /** The real, domain-personalized SAT-round questions from
+   * `generate-interview-questions`, persisted once generated so resuming
+   * the interview shows the SAME set rather than regenerating a different
+   * one. `null` until generation has actually run and succeeded. */
+  generatedOpinionQuestions: OnboardingQuestion[] | null
 }
 
 interface OnboardingStateRow {
@@ -20,6 +25,7 @@ interface OnboardingStateRow {
   current_phase_index: number
   completed_at: string | null
   skipped: boolean
+  generated_opinion_questions: OnboardingQuestion[] | null
 }
 
 function rowToOnboardingState(row: OnboardingStateRow): OnboardingState {
@@ -27,6 +33,7 @@ function rowToOnboardingState(row: OnboardingStateRow): OnboardingState {
     currentPhaseIndex: row.current_phase_index,
     completedAt: row.completed_at,
     skipped: row.skipped,
+    generatedOpinionQuestions: row.generated_opinion_questions,
   }
 }
 
@@ -48,6 +55,7 @@ export async function upsertOnboardingState(
   if (patch.currentPhaseIndex !== undefined) row.current_phase_index = patch.currentPhaseIndex
   if (patch.completedAt !== undefined) row.completed_at = patch.completedAt
   if (patch.skipped !== undefined) row.skipped = patch.skipped
+  if (patch.generatedOpinionQuestions !== undefined) row.generated_opinion_questions = patch.generatedOpinionQuestions
   await supabase.from('onboarding_state').upsert(row, { onConflict: 'user_id' })
 }
 

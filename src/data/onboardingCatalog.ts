@@ -57,6 +57,7 @@ export interface OnboardingQuestion {
 export type ContentOrientation = 'personal_brand' | 'audience_sales'
 
 export const ORIENTATION_QUESTION_ID = 'q_orientation'
+export const IDENTITY_QUESTION_ID = 'q_identity'
 
 const IDENTITY_QUESTION: OnboardingQuestion = {
   id: 'q_identity',
@@ -364,9 +365,21 @@ const SOURCES_QUESTION: OnboardingQuestion = {
  * answer so far (`null`/`undefined` before it's been answered yet, which
  * defaults to the Personal Brand set so the interview always has *some*
  * valid next question to show). */
-export function getInterviewQuestions(orientation: ContentOrientation | null | undefined): OnboardingQuestion[] {
+export function getInterviewQuestions(
+  orientation: ContentOrientation | null | undefined,
+  /** Real, domain-personalized SAT-round questions from
+   * `generate-interview-questions` (see `generateInterviewQuestionsService.ts`),
+   * when available — replaces the generic static set below entirely. Falls
+   * back to the static set when this is `undefined`/empty (API key not
+   * configured yet, or generation hasn't run/resolved for this session). */
+  dynamicOpinionQuestions?: OnboardingQuestion[],
+): OnboardingQuestion[] {
   const opinionQuestions =
-    orientation === 'audience_sales' ? OPINION_QUESTIONS_AUDIENCE_SALES : OPINION_QUESTIONS_PERSONAL_BRAND
+    dynamicOpinionQuestions && dynamicOpinionQuestions.length > 0
+      ? dynamicOpinionQuestions
+      : orientation === 'audience_sales'
+        ? OPINION_QUESTIONS_AUDIENCE_SALES
+        : OPINION_QUESTIONS_PERSONAL_BRAND
   const positioningQuestions =
     orientation === 'audience_sales' ? POSITIONING_QUESTIONS_SOCIAL_SELLER : POSITIONING_QUESTIONS_TL
   return [
