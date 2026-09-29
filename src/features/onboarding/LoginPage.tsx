@@ -11,8 +11,29 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient'
  * one real, working path for now. */
 export function LoginPage() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+
+  async function handlePasswordSignIn() {
+    const trimmed = email.trim()
+    if (!trimmed || !password) {
+      setStatus('error')
+      setErrorMessage('Enter your email and password.')
+      return
+    }
+    setStatus('sending')
+    setErrorMessage('')
+    const { error } = await supabase.auth.signInWithPassword({ email: trimmed, password })
+    if (error) {
+      setStatus('error')
+      setErrorMessage(error.message)
+    }
+    // On success, AuthContext's own session listener picks up the new
+    // session and RequireAnonymous redirects away from here — nothing
+    // else to do.
+  }
 
   async function handleMagicLink() {
     const trimmed = email.trim()
@@ -138,6 +159,39 @@ export function LoginPage() {
               </Button>
               {status === 'error' && (
                 <p className="text-[12px] text-danger-fg">{errorMessage}</p>
+              )}
+              {!showPassword ? (
+                <button
+                  onClick={() => setShowPassword(true)}
+                  className="text-left text-[12px] text-muted underline decoration-border underline-offset-2"
+                >
+                  Magic-link email not arriving? Sign in with a password instead
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2 border-t border-border-soft pt-3">
+                  <label htmlFor="password" className="font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">
+                    Password (interim — while magic-link email is being fixed)
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handlePasswordSignIn()
+                    }}
+                    className="flex h-[42px] items-center rounded-lg border border-border bg-transparent px-3 text-[13px] text-ink outline-none placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_4px_var(--tl-accent-10)]"
+                  />
+                  <Button
+                    variant="secondary"
+                    className="justify-center py-3"
+                    onClick={() => void handlePasswordSignIn()}
+                    disabled={status === 'sending'}
+                  >
+                    {status === 'sending' ? 'Signing in…' : 'Sign in'}
+                  </Button>
+                </div>
               )}
             </div>
           )}
