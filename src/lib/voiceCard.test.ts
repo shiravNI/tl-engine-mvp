@@ -169,9 +169,13 @@ describe('getInterviewQuestions', () => {
       'q_pos_tl_1',
       'q_pos_tl_2',
       'q_pos_tl_3',
+      'q_pos_tl_4',
+      'q_pos_tl_5',
       'q_hot_take_1',
       'q_hot_take_2',
       'q_hot_take_3',
+      'q_hot_take_4',
+      'q_hot_take_5',
     ])
   })
 
@@ -186,16 +190,20 @@ describe('getInterviewQuestions', () => {
       'q_pos_ss_1',
       'q_pos_ss_2',
       'q_pos_ss_3',
+      'q_pos_ss_4',
+      'q_pos_ss_5',
       'q_hot_take_1',
       'q_hot_take_2',
       'q_hot_take_3',
+      'q_hot_take_4',
+      'q_hot_take_5',
     ])
   })
 
-  it('always includes identity, goals, voice, opinions, format, and sources in phase order', () => {
+  it('always includes identity, goals, voice, opinions, persona, format, and sources in phase order', () => {
     const questions = getInterviewQuestions('personal_brand')
     const phaseOrder = [...new Set(questions.map((q) => q.phaseId))]
-    expect(phaseOrder).toEqual(['identity', 'goals', 'voice', 'opinions', 'format', 'sources'])
+    expect(phaseOrder).toEqual(['identity', 'goals', 'voice', 'opinions', 'persona', 'format', 'sources'])
   })
 
   it('marks the positioning and hot-take questions as free-text, and format/sources questions as choice unless noted', () => {

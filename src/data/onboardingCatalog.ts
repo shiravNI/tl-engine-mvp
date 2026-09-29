@@ -34,7 +34,7 @@ export const ONBOARDING_PHASES: OnboardingPhaseDef[] = [
 ]
 
 /** Every phase with at least one real, tappable question in this build. */
-export const INTERACTIVE_PHASE_IDS = ['identity', 'goals', 'voice', 'opinions', 'format', 'sources'] as const
+export const INTERACTIVE_PHASE_IDS = ['identity', 'goals', 'voice', 'opinions', 'persona', 'format', 'sources'] as const
 
 export interface OnboardingQuestionOption {
   id: string
@@ -209,6 +209,20 @@ const POSITIONING_QUESTIONS_TL: OnboardingQuestion[] = [
     prompt: "When you read LinkedIn posts in your field, what's the thing that's almost never said — but should be?",
     options: [],
   },
+  {
+    id: 'q_pos_tl_4',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: 'What do you think the people in your industry are mostly getting wrong?',
+    options: [],
+  },
+  {
+    id: 'q_pos_tl_5',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "Finish this sentence: \"Most [people in your role/industry] think X, but I think Y.\"",
+    options: [],
+  },
 ]
 
 /** Section 2.5's Positioning questions (Social Seller variant) — the
@@ -234,6 +248,20 @@ const POSITIONING_QUESTIONS_SOCIAL_SELLER: OnboardingQuestion[] = [
     phaseId: 'opinions',
     type: 'text',
     prompt: "When you read content in your space, what's the thing that's almost never said about the buyer's actual situation — but should be?",
+    options: [],
+  },
+  {
+    id: 'q_pos_ss_4',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "What's the thing buyers in your space almost always get wrong about the problem you solve — before they talk to you?",
+    options: [],
+  },
+  {
+    id: 'q_pos_ss_5',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "Finish this sentence: \"Most buyers think X about this problem, but the real story is Y.\"",
     options: [],
   },
 ]
@@ -263,6 +291,49 @@ const HOT_TAKE_QUESTIONS: OnboardingQuestion[] = [
     type: 'text',
     prompt: "Finish this: \"I'm probably wrong about this, but I think _____\"",
     options: [],
+  },
+  {
+    id: 'q_hot_take_4',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "What's a piece of advice you'd give that most people in your position wouldn't?",
+    options: [],
+  },
+  {
+    id: 'q_hot_take_5',
+    phaseId: 'opinions',
+    type: 'text',
+    prompt: "What do you think is about to change in your field that nobody is talking about yet?",
+    options: [],
+  },
+]
+
+const PERSONA_OPTIONS: OnboardingQuestionOption[] = [
+  { id: 'practitioner', label: 'The Practitioner — real-world lessons from the trenches, not theory' },
+  { id: 'contrarian', label: 'The Contrarian — challenges consensus with evidence and strong opinions' },
+  { id: 'storyteller', label: 'The Storyteller — personal narrative makes professional insights human' },
+  { id: 'educator', label: 'The Educator — breaks down complex topics for a broad audience' },
+  { id: 'connector', label: 'The Connector — builds community, spotlights others, facilitates conversation' },
+  { id: 'visionary', label: 'The Visionary — focused on where the industry is going, not where it is' },
+  { id: 'builder', label: 'The Builder — documents what they’re creating in real time' },
+]
+
+/** Section 2.6 — Persona Fit. The skill has the AI propose an archetype
+ * and ask if it resonates; without a live AI pass this has to be a real
+ * self-select instead of a guess dressed up as one — a blend is common
+ * (primary + secondary), which is why this is two taps, not one. */
+const PERSONA_QUESTIONS: OnboardingQuestion[] = [
+  {
+    id: 'q_persona_primary',
+    phaseId: 'persona',
+    prompt: 'Which of these feels most like your primary style?',
+    options: PERSONA_OPTIONS.map((o, i) => ({ ...o, primary: i === 0 })),
+  },
+  {
+    id: 'q_persona_secondary',
+    phaseId: 'persona',
+    prompt: "And which feels like your secondary — the flavor underneath the primary one?",
+    options: PERSONA_OPTIONS,
   },
 ]
 
@@ -389,6 +460,7 @@ export function getInterviewQuestions(
     ...opinionQuestions,
     ...positioningQuestions,
     ...HOT_TAKE_QUESTIONS,
+    ...PERSONA_QUESTIONS,
     ...FORMAT_QUESTIONS,
     SOURCES_QUESTION,
   ]
