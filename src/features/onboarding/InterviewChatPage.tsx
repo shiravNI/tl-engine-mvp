@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ONBOARDING_PHASES, type ContentOrientation } from '@/data/onboardingCatalog'
 import {
   fetchChatTranscript,
@@ -7,6 +7,7 @@ import {
   saveContentOrientation,
   sendInterviewTurn,
 } from '@/data/services/interviewChatService'
+import { scriptedInterviewTurn } from '@/data/services/scriptedInterview'
 import { upsertOnboardingState } from '@/data/services/onboardingService'
 import { synthesizeVoiceCard } from '@/data/services/voiceCardSynthesisService'
 import { buildChatEntries, type ChatTurn } from '@/lib/interviewTranscript'
@@ -39,6 +40,7 @@ const OPENING: ChatTurn = {
  * from or written to the account — it's a sandbox for trying the flow. */
 export function InterviewChatPage({ demo = false }: { demo?: boolean } = {}) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { profile, refreshOnboardingState } = useAuth()
   const userId = profile?.userId
 
@@ -51,6 +53,8 @@ export function InterviewChatPage({ demo = false }: { demo?: boolean } = {}) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  // Demo-only: canned questions so the UI can be previewed without an AI key.
+  const [scripted, setScripted] = useState(demo && searchParams.has('scripted'))
   const [finishing, setFinishing] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -84,10 +88,15 @@ export function InterviewChatPage({ demo = false }: { demo?: boolean } = {}) {
     ONBOARDING_PHASES.findIndex((p) => p.id === phase),
   )
 
-  async function requestReply(history: ChatTurn[]) {
+  async function requestReply(history: ChatTurn[], forceScripted = false) {
     setSending(true)
     setError(null)
-    const result = await sendInterviewTurn(history)
+    const result =
+      demo && (scripted || forceScripted)
+        ? await new Promise<ReturnType<typeof scriptedInterviewTurn>>((r) =>
+            setTimeout(() => r(scriptedInterviewTurn(history)), 600),
+          )
+        : await sendInterviewTurn(history)
     setSending(false)
     if ('error' in result) {
       setError(result.error)
@@ -149,7 +158,7 @@ export function InterviewChatPage({ demo = false }: { demo?: boolean } = {}) {
           TL
         </div>
         <span className="text-[13px] font-semibold">TL Engine</span>
-        <Pill>{demo ? 'Demo: nothing is saved' : 'Voice interview'}</Pill>
+        <Pill>{demo ? (scripted ? 'Scripted preview: nothing is saved' : 'Demo: nothing is saved') : 'Voice interview'}</Pill>
         <div className="flex-1" />
         <span className="text-[12px] text-muted">
           {demo ? 'Test run: this stays in your tab' : '~40 min · saves as you go'}
@@ -238,6 +247,17 @@ export function InterviewChatPage({ demo = false }: { demo?: boolean } = {}) {
                   {awaitingReply && !finishing && (
                     <button className="w-fit font-semibold underline" onClick={() => void requestReply(turns)}>
                       Try again
+                    </button>
+                  )}
+                  {demo && awaitingReply && !scripted && (
+                    <button
+                      className="w-fit font-semibold underline"
+                      onClick={() => {
+                        setScripted(true)
+                        void requestReply(turns, true)
+                      }}
+                    >
+                      Preview with scripted questions instead (no AI)
                     </button>
                   )}
                 </div>
