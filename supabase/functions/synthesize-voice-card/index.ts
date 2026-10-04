@@ -76,6 +76,12 @@ Deno.serve(async (req: Request) => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) return json({ error: "Invalid session" }, 401);
 
+    // Voice setup runs once per profile: once it's complete, the card can't be rewritten from here.
+    const { data: onboarding } = await supabase.from("onboarding_state").select("completed_at").maybeSingle();
+    if (onboarding?.completed_at) {
+      return json({ error: "Your voice setup is already complete." }, 409);
+    }
+
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const entries: TranscriptEntry[] = Array.isArray(body.entries) ? body.entries : [];
     if (entries.length === 0) {
