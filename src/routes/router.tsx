@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RouteFallback } from '@/routes/RouteFallback'
 import { RouteErrorBoundary } from '@/routes/RouteErrorBoundary'
-import { RequireAuth, RequireAnonymous, RequireOnboardingIncomplete } from '@/routes/RequireAuth'
+import { RequireAuth, RequireAnonymous, RequireOnboardingIncomplete, RequireSession } from '@/routes/RequireAuth'
 import { TopBar } from '@/components/chrome/TopBar'
 
 const LoginPage = lazy(() => import('@/features/onboarding/LoginPage').then((m) => ({ default: m.LoginPage })))
@@ -11,6 +11,9 @@ const OnboardingMapPage = lazy(() =>
 )
 const InterviewPage = lazy(() =>
   import('@/features/onboarding/InterviewPage').then((m) => ({ default: m.InterviewPage })),
+)
+const InterviewDemoPage = lazy(() =>
+  import('@/features/onboarding/InterviewPage').then((m) => ({ default: () => <m.InterviewPage demo /> })),
 )
 const DrafterPage = lazy(() => import('@/features/drafter/DrafterPage').then((m) => ({ default: m.DrafterPage })))
 const VoiceCardPage = lazy(() =>
@@ -53,6 +56,20 @@ export const router = createBrowserRouter([
           <InterviewPage />
         </Suspense>
       </RequireOnboardingIncomplete>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    // Full interview, zero persistence — a test page for walking through
+    // the real flow. Needs a signed-in session only so the personalized
+    // question generation can run; nothing it does is written anywhere.
+    path: '/interview-demo',
+    element: (
+      <RequireSession>
+        <Suspense fallback={<RouteFallback />}>
+          <InterviewDemoPage />
+        </Suspense>
+      </RequireSession>
     ),
     errorElement: <RouteErrorBoundary />,
   },

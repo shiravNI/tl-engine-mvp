@@ -34,7 +34,7 @@ import { cx } from '@/lib/cx'
  * `interview_answers`, and the Voice Card is a live, deterministic
  * derivation from those saved answers (see `src/lib/voiceCard.ts`),
  * upserted on every "Continue". */
-export function InterviewPage() {
+export function InterviewPage({ demo = false }: { demo?: boolean } = {}) {
   const navigate = useNavigate()
   const { profile, refreshOnboardingState } = useAuth()
   const userId = profile?.userId
@@ -49,6 +49,7 @@ export function InterviewPage() {
   const [dynamicOpinionQuestions, setDynamicOpinionQuestions] = useState<OnboardingQuestion[] | null>(null)
   const [generatingQuestions, setGeneratingQuestions] = useState(false)
   const generationAttempted = useRef(false)
+  const [demoComplete, setDemoComplete] = useState(false)
 
   // Which Opinions & POV question set is active depends on the *persisted*
   // answer to the orientation fork (`q_orientation`) — not the in-progress
@@ -63,6 +64,12 @@ export function InterviewPage() {
   const isLast = exchangeIndex === questions.length - 1
 
   useEffect(() => {
+    // Demo mode never reads saved answers — it always starts from a blank
+    // slate, so nothing from a real interview leaks into the test run.
+    if (demo) {
+      setLoaded(true)
+      return
+    }
     if (!userId) return
     let cancelled = false
     Promise.all([fetchInterviewAnswers(userId), fetchOnboardingState(userId)]).then(([existing, state]) => {
@@ -85,7 +92,7 @@ export function InterviewPage() {
     return () => {
       cancelled = true
     }
-  }, [userId])
+  }, [userId, demo])
 
   useEffect(() => {
     if (!loaded) return
@@ -144,15 +151,19 @@ export function InterviewPage() {
   }, [questions, answers])
 
   async function persistCurrentAnswer(): Promise<Map<string, InterviewAnswerInput>> {
-    if (!userId) return answers
+    if (!userId && !demo) return answers
     const answer: InterviewAnswerInput = {
       questionId: question.id,
       selectedOptionId: selectedOption,
       freeTextAnswer: freeText.trim() ? freeText.trim() : null,
     }
-    await upsertInterviewAnswer(userId, answer)
     const nextAnswers = new Map(answers)
     nextAnswers.set(question.id, answer)
+    if (demo || !userId) {
+      setAnswers(nextAnswers)
+      return nextAnswers
+    }
+    await upsertInterviewAnswer(userId, answer)
     setAnswers(nextAnswers)
 
     const nextAnswerList = Array.from(nextAnswers.values())
@@ -172,11 +183,15 @@ export function InterviewPage() {
   }
 
   async function handleContinue() {
-    if (!userId || saving) return
+    if ((!userId && !demo) || saving) return
     setSaving(true)
     try {
       const finalAnswers = await persistCurrentAnswer()
-      if (isLast) {
+      if (isLast && demo) {
+        setDemoComplete(true)
+        return
+      }
+      if (isLast && userId) {
         // Real Phase-3 synthesis — the thin, deterministic card from
         // `persistCurrentAnswer` above already saved as a fallback, so a
         // failure here (most likely: the API key isn't configured yet)
@@ -209,7 +224,7 @@ export function InterviewPage() {
           const result = await generateInterviewQuestions(identityAnswer, goalAnswer, persistedOrientation)
           if ('questions' in result && result.questions.length > 0) {
             setDynamicOpinionQuestions(result.questions)
-            await upsertOnboardingState(userId, { generatedOpinionQuestions: result.questions })
+            if (!demo && userId) await upsertOnboardingState(userId, { generatedOpinionQuestions: result.questions })
           } else if ('error' in result) {
             console.error('[InterviewPage] question generation failed, using generic set:', result.error)
           }
@@ -223,6 +238,10 @@ export function InterviewPage() {
   }
 
   async function handleFinishLater() {
+    if (demo) {
+      navigate('/')
+      return
+    }
     if (userId) {
       await persistCurrentAnswer()
       await upsertOnboardingState(userId, { skipped: true })
@@ -235,6 +254,40 @@ export function InterviewPage() {
     return <div className="p-8 text-[13px] text-muted">Loading your interview…</div>
   }
 
+  if (demoComplete) {
+    const transcript = buildInterviewTranscript(answers, questions)
+    return (
+      <div className="mx-auto flex max-w-[760px] flex-col gap-4 px-6 py-10">
+        <Pill>Demo complete — nothing was saved</Pill>
+        <h1 className="text-[24px] font-bold tracking-tight">That's the whole interview.</h1>
+        <p className="text-[13px] text-body">
+          {transcript.length} answers. In a real run, these would now be written up into your full Voice Card.
+        </p>
+        <Card className="flex flex-col gap-2 p-5">
+          <p className="font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Live preview card</p>
+          <p className="text-[13px] text-body">{derivedCard.povFingerprint}</p>
+        </Card>
+        <Card className="flex flex-col gap-3 p-5">
+          <p className="font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Everything you said</p>
+          {transcript.map((e, i) => (
+            <div key={i}>
+              <p className="text-[12px] font-semibold text-ink">{e.prompt}</p>
+              <p className="text-[13px] text-body">{e.answer}</p>
+            </div>
+          ))}
+        </Card>
+        <div className="flex gap-2.5">
+          <Button variant="primary" onClick={() => window.location.reload()}>
+            Run it again
+          </Button>
+          <Button variant="secondary" onClick={() => navigate('/')}>
+            Exit
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen flex-col">
       <header className="flex h-[58px] flex-none items-center gap-2.5 border-b border-border bg-surface px-5">
@@ -242,11 +295,13 @@ export function InterviewPage() {
           TL
         </div>
         <span className="text-[13px] font-semibold">TL Engine</span>
-        <Pill>First-time setup</Pill>
+        <Pill>{demo ? 'Demo — nothing is saved' : 'First-time setup'}</Pill>
         <div className="flex-1" />
-        <span className="text-[12px] text-muted">~40 min · autosaves as you go</span>
+        <span className="text-[12px] text-muted">
+          {demo ? 'Test run · answers stay in this tab only' : '~40 min · autosaves as you go'}
+        </span>
         <Button variant="ghost" onClick={() => void handleFinishLater()}>
-          Finish later
+          {demo ? 'Exit demo' : 'Finish later'}
         </Button>
       </header>
 
