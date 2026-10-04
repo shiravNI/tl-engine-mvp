@@ -34,7 +34,7 @@ export interface RoastFlag {
  * least once (`voice_cards.synthesized_at` is non-null). */
 export interface SynthesizedVoiceCard {
   positioningStatement: string
-  identity: { roleCompany: string; industry: string; coreExpertise: string; linkedinGoal: string }
+  identity: { roleCompany: string; location?: string; industry: string; coreExpertise: string; linkedinGoal: string }
   persona: {
     primary: { name: string; description: string }
     secondary: { name: string; description: string }
@@ -51,8 +51,15 @@ export interface SynthesizedVoiceCard {
   opinions: string[]
   signatureQuotes: string[]
   trustedSources: string[]
+  postExamples?: string
   audience: { primary: string; secondary: string }
   memorySummary: string
+}
+
+export interface IdeaCheck {
+  verdict: 'green' | 'yellow' | 'red'
+  insight: string
+  missing: string
 }
 
 /** The subset of `public.drafts` columns this app reads/writes — that
@@ -70,6 +77,11 @@ export interface Draft {
   roastVerdict: string
   roastFlags: RoastFlag[]
   sourceLabel: string | null
+  /** 'article' is how a newsletter issue is stored (the shared drafts table only allows post|article). */
+  format: 'post' | 'article'
+  /** What the AI first wrote, kept so edits can be learned from. null for drafts the person started blank. */
+  aiOriginal: string[] | null
+  ideaCheck: IdeaCheck | null
   createdAt: string
   updatedAt: string
 }

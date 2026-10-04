@@ -34,7 +34,7 @@ interface TranscriptEntry {
 
 const SYNTHESIS_SCHEMA = `{
   "positioningStatement": string (2-4 sentences, in the format "[Name] is a [role] who believes/understands [core POV]. They post for [audience]. Their unique angle is [X]. You follow/trust them because [Y]."),
-  "identity": { "roleCompany": string, "industry": string, "coreExpertise": string (1-2 sentences), "linkedinGoal": string },
+  "identity": { "roleCompany": string, "location": string (empty string if they never said), "industry": string, "coreExpertise": string (1-2 sentences), "linkedinGoal": string },
   "persona": {
     "primary": { "name": string (one of: The Practitioner, The Contrarian, The Storyteller, The Educator, The Connector, The Visionary, The Builder), "description": string (1-2 sentences, specific to this person, not generic) },
     "secondary": { "name": string, "description": string }
@@ -51,6 +51,7 @@ const SYNTHESIS_SCHEMA = `{
   "opinions": string[] (3-6 quotable takes, written IN THEIR VOICE using their own vocabulary, not summarized or softened),
   "signatureQuotes": string[] (5-10 short, punchy, verbatim-feeling lines pulled or extrapolated from what they actually said),
   "trustedSources": string[] (from what they said they read/follow; empty array if they gave none),
+  "postExamples": string (empty string unless they shared or described real past posts; if so, 2-4 sentences on what those posts do and what they share),
   "audience": { "primary": string, "secondary": string },
   "memorySummary": string (3-5 plain-English sentences capturing voice, goals, pillars, personality)
 }`;
@@ -127,15 +128,15 @@ ${transcript}${importedNote}`;
 
     const { error: updateError } = await supabase
       .from("voice_cards")
-      .update({
+      .upsert({
+        user_id: userData.user.id,
         pov_fingerprint: synthesized.positioningStatement ?? "",
         completeness_pct: 100,
         completeness_note: "Synthesized from your full interview.",
         role_label: synthesized.identity?.roleCompany ?? "",
         synthesized,
         synthesized_at: new Date().toISOString(),
-      })
-      .eq("user_id", userData.user.id);
+      }, { onConflict: "user_id" });
     if (updateError) return json({ error: `Failed to save: ${updateError.message}` }, 500);
 
     // Replace the flat opinions list with the synthesized, real quotable

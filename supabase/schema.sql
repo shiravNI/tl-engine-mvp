@@ -177,6 +177,8 @@ create table public.drafts (
   roast_verdict    text not null default '',                                    -- <- MVP
   roast_flags      jsonb not null default '[]'::jsonb,                          -- <- MVP
   voice_match      int not null default 0,                                      -- <- MVP
+  ai_original      jsonb,                                                       -- <- MVP: what the AI first wrote; edits vs this are learned from
+  idea_check       jsonb,                                                       -- <- MVP: BS-detector verdict on the idea {verdict, insight, missing}
   origin           text not null default 'user' check (origin in ('user', 'agent')),
   source_idea_id   uuid references public.ideas(id) on delete set null,
   source_type      text,
@@ -196,3 +198,23 @@ create policy "drafts_owner" on public.drafts
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create index drafts_user_stage_idx on public.drafts (user_id, stage);
 create index drafts_source_idea_idx on public.drafts (source_idea_id);
+
+-- ----------------------------------------------------------------------------
+-- draft_feedback — what the drafter learns from beyond edits: thumbs up/down
+-- with an optional note, and every free-form "make it X" instruction.
+-- Read back into every generation by draft-post / suggest-topics / revise-text.
+-- ----------------------------------------------------------------------------
+create table public.draft_feedback (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  draft_id   uuid references public.drafts(id) on delete set null,
+  kind       text not null check (kind in ('liked', 'disliked', 'note')),
+  note       text not null default '',
+  created_at timestamptz not null default now()
+);
+alter table public.draft_feedback enable row level security;
+create policy "draft_feedback_owner" on public.draft_feedback
+  for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create index draft_feedback_user_created_idx on public.draft_feedback (user_id, created_at desc);
+create index draft_feedback_draft_idx on public.draft_feedback (draft_id);

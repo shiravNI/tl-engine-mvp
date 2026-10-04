@@ -18,7 +18,18 @@ export async function synthesizeVoiceCard(entries: TranscriptEntry[]): Promise<S
   return { synthesized: data.synthesized as SynthesizedVoiceCard }
 }
 
-export async function fetchSynthesizedVoiceCard(userId: string): Promise<SynthesizedVoiceCard | null> {
-  const { data } = await supabase.from('voice_cards').select('synthesized').eq('user_id', userId).maybeSingle()
-  return (data?.synthesized as SynthesizedVoiceCard | null) ?? null
+export interface StoredVoiceCard {
+  card: SynthesizedVoiceCard
+  /** When the card was last (re)written, ISO string. */
+  updatedAt: string | null
+}
+
+export async function fetchSynthesizedVoiceCard(userId: string): Promise<StoredVoiceCard | null> {
+  const { data } = await supabase
+    .from('voice_cards')
+    .select('synthesized, synthesized_at')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (!data?.synthesized) return null
+  return { card: data.synthesized as SynthesizedVoiceCard, updatedAt: (data.synthesized_at as string | null) ?? null }
 }
