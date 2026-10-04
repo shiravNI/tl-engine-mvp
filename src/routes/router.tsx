@@ -2,7 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RouteFallback } from '@/routes/RouteFallback'
 import { RouteErrorBoundary } from '@/routes/RouteErrorBoundary'
-import { RequireAnonymous, RequireSession, RequireVoiceSetupOpen } from '@/routes/RequireAuth'
+import { RequireAnonymous, RequireSession } from '@/routes/RequireAuth'
 import { TopBar } from '@/components/chrome/TopBar'
 
 const LoginPage = lazy(() => import('@/features/onboarding/LoginPage').then((m) => ({ default: m.LoginPage })))
@@ -53,11 +53,11 @@ export const router = createBrowserRouter([
   {
     path: '/voice-setup',
     element: (
-      <RequireVoiceSetupOpen>
+      <RequireSession>
         <AppShell>
           <VoiceSetup startInChat />
         </AppShell>
-      </RequireVoiceSetupOpen>
+      </RequireSession>
     ),
     errorElement: <RouteErrorBoundary />,
   },

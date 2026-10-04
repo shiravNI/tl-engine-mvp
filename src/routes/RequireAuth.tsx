@@ -13,25 +13,6 @@ export function RequireAnonymous({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-/**
- * Guards `/voice-setup`. Someone who already finished the interview is
- * sent to their Voice Card instead, so re-entering can't silently overwrite
- * it. Someone who only skipped it can come back and finish.
- */
-export function RequireVoiceSetupOpen({ children }: { children: ReactNode }) {
-  const { status, onboardingCompletedAt } = useAuth()
-  const location = useLocation()
-
-  if (status === 'loading') return <RouteFallback />
-  if (status === 'unauthenticated') {
-    return <Navigate to="/login" replace state={{ from: location }} />
-  }
-  if (onboardingCompletedAt === undefined) return <RouteFallback />
-  if (onboardingCompletedAt !== null) return <Navigate to="/voice-card" replace />
-
-  return <>{children}</>
-}
-
 /** Guards pages that only need a signed-in session, regardless of
  * onboarding state (e.g. the no-persistence interview demo). */
 export function RequireSession({ children }: { children: ReactNode }) {

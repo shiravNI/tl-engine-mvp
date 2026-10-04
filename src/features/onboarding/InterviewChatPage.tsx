@@ -49,7 +49,9 @@ export function InterviewChatPage({
 }: { demo?: boolean; embedded?: boolean } = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { profile, refreshOnboardingState } = useAuth();
+  const { profile, refreshOnboardingState, onboardingCompletedAt } = useAuth();
+  // Someone who already has a Voice Card and is running the interview again.
+  const isRedo = !demo && !!onboardingCompletedAt;
   const userId = profile?.userId;
 
   const [loaded, setLoaded] = useState(demo);
@@ -165,10 +167,12 @@ export function InterviewChatPage({
   async function finishLater() {
     if (!demo && userId) {
       await saveChatTranscript(userId, turns);
-      await upsertOnboardingState(userId, { skipped: true });
-      await refreshOnboardingState();
+      if (!isRedo) {
+        await upsertOnboardingState(userId, { skipped: true });
+        await refreshOnboardingState();
+      }
     }
-    navigate("/");
+    navigate(isRedo ? "/voice-card" : "/");
   }
 
   if (!loaded)
@@ -197,7 +201,9 @@ export function InterviewChatPage({
             ? scripted
               ? "Scripted preview: nothing is saved"
               : "Demo: nothing is saved"
-            : "Voice interview"}
+            : isRedo
+              ? "Redoing your interview"
+              : "Voice interview"}
         </Pill>
         <div className="flex-1" />
         <span className="text-[12px] text-muted">
@@ -206,7 +212,7 @@ export function InterviewChatPage({
             : "~40 min · saves as you go"}
         </span>
         <Button variant="ghost" onClick={() => void finishLater()}>
-          {demo ? "Exit demo" : "Finish later"}
+          {demo ? "Exit demo" : isRedo ? "Cancel, keep my current card" : "Finish later"}
         </Button>
       </header>
 

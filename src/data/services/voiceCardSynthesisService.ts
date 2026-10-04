@@ -33,3 +33,32 @@ export async function fetchSynthesizedVoiceCard(userId: string): Promise<StoredV
   if (!data?.synthesized) return null
   return { card: data.synthesized as SynthesizedVoiceCard, updatedAt: (data.synthesized_at as string | null) ?? null }
 }
+
+/** Saves a hand-edited Voice Card (RLS scopes every write to the caller).
+ * Keeps the derived columns the drafter also reads, and the flat opinions
+ * list, in step with the card. Returns the new "last updated" time. */
+export async function saveEditedVoiceCard(
+  userId: string,
+  card: SynthesizedVoiceCard,
+): Promise<{ updatedAt: string } | { error: string }> {
+  const updatedAt = new Date().toISOString()
+  const { error } = await supabase
+    .from('voice_cards')
+    .update({
+      synthesized: card,
+      synthesized_at: updatedAt,
+      pov_fingerprint: card.positioningStatement,
+      role_label: card.identity.roleCompany,
+      updated_at: updatedAt,
+    })
+    .eq('user_id', userId)
+  if (error) return { error: "Couldn't save your changes. Try again." }
+
+  await supabase.from('voice_card_opinions').delete().eq('user_id', userId)
+  if (card.opinions.length > 0) {
+    await supabase.from('voice_card_opinions').insert(
+      card.opinions.map((quote, i) => ({ user_id: userId, quote, placeholder: false, sort_order: i })),
+    )
+  }
+  return { updatedAt }
+}
