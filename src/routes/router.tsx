@@ -1,21 +1,19 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RouteFallback } from '@/routes/RouteFallback'
 import { RouteErrorBoundary } from '@/routes/RouteErrorBoundary'
-import { RequireAuth, RequireAnonymous, RequireOnboardingIncomplete, RequireSession } from '@/routes/RequireAuth'
+import { RequireAnonymous, RequireSession, RequireVoiceSetupOpen } from '@/routes/RequireAuth'
 import { TopBar } from '@/components/chrome/TopBar'
 
 const LoginPage = lazy(() => import('@/features/onboarding/LoginPage').then((m) => ({ default: m.LoginPage })))
-const OnboardingMapPage = lazy(() =>
-  import('@/features/onboarding/OnboardingMapPage').then((m) => ({ default: m.OnboardingMapPage })),
-)
+const HomePage = lazy(() => import('@/features/home/HomePage').then((m) => ({ default: m.HomePage })))
+const VoiceSetup = lazy(() => import('@/features/onboarding/VoiceSetup').then((m) => ({ default: m.VoiceSetup })))
 const InterviewChatPage = lazy(() =>
   import('@/features/onboarding/InterviewChatPage').then((m) => ({ default: m.InterviewChatPage })),
 )
 const InterviewDemoPage = lazy(() =>
   import('@/features/onboarding/InterviewChatPage').then((m) => ({ default: () => <m.InterviewChatPage demo /> })),
 )
-const DrafterPage = lazy(() => import('@/features/drafter/DrafterPage').then((m) => ({ default: m.DrafterPage })))
 const VoiceCardPage = lazy(() =>
   import('@/features/voice-card/VoiceCardPage').then((m) => ({ default: m.VoiceCardPage })),
 )
@@ -23,6 +21,18 @@ const VoiceCardPage = lazy(() =>
 // Matches vite.config.ts's GitHub Pages base path — react-router's own
 // basename is separate from Vite's asset base and has to be set explicitly
 // too, or route matching breaks once the app is served under a subpath.
+/** The one app frame: shared top bar, page below. */
+function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <TopBar />
+      <main className="flex-1">
+        <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+      </main>
+    </div>
+  )
+}
+
 const basename = import.meta.env.BASE_URL !== '/' ? import.meta.env.BASE_URL : undefined
 
 export const router = createBrowserRouter([
@@ -37,25 +47,17 @@ export const router = createBrowserRouter([
     ),
     errorElement: <RouteErrorBoundary />,
   },
+  // The old separate onboarding screens now live inside the app itself.
+  { path: '/onboarding', element: <Navigate to="/" replace /> },
+  { path: '/onboarding/interview', element: <Navigate to="/voice-setup" replace /> },
   {
-    path: '/onboarding',
+    path: '/voice-setup',
     element: (
-      <RequireOnboardingIncomplete>
-        <Suspense fallback={<RouteFallback />}>
-          <OnboardingMapPage />
-        </Suspense>
-      </RequireOnboardingIncomplete>
-    ),
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: '/onboarding/interview',
-    element: (
-      <RequireOnboardingIncomplete>
-        <Suspense fallback={<RouteFallback />}>
-          <InterviewChatPage />
-        </Suspense>
-      </RequireOnboardingIncomplete>
+      <RequireVoiceSetupOpen>
+        <AppShell>
+          <VoiceSetup startInChat />
+        </AppShell>
+      </RequireVoiceSetupOpen>
     ),
     errorElement: <RouteErrorBoundary />,
   },
@@ -76,32 +78,22 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: (
-      <RequireAuth>
-        <div className="flex min-h-screen flex-col">
-          <TopBar />
-          <main className="flex-1">
-            <Suspense fallback={<RouteFallback />}>
-              <DrafterPage />
-            </Suspense>
-          </main>
-        </div>
-      </RequireAuth>
+      <RequireSession>
+        <AppShell>
+          <HomePage />
+        </AppShell>
+      </RequireSession>
     ),
     errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/voice-card',
     element: (
-      <RequireAuth>
-        <div className="flex min-h-screen flex-col">
-          <TopBar />
-          <main className="flex-1">
-            <Suspense fallback={<RouteFallback />}>
-              <VoiceCardPage />
-            </Suspense>
-          </main>
-        </div>
-      </RequireAuth>
+      <RequireSession>
+        <AppShell>
+          <VoiceCardPage />
+        </AppShell>
+      </RequireSession>
     ),
     errorElement: <RouteErrorBoundary />,
   },

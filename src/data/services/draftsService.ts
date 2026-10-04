@@ -102,6 +102,13 @@ export async function suggestTopics(steer?: string): Promise<{ ideas: TopicIdea[
   return invoke<{ ideas: TopicIdea[]; researched: boolean }>('suggest-topics', { steer: steer ?? '' })
 }
 
+/** Personalised "spark" prompts: questions built from the person's Voice
+ * Card that pull a specific story or opinion out of them. `avoid` is what
+ * they've already been shown, so a regenerate gives fresh ones. */
+export async function suggestPrompts(avoid: string[]): Promise<{ prompts: string[] } | { error: string }> {
+  return invoke<{ prompts: string[] }>('suggest-topics', { mode: 'prompts', avoid: avoid.slice(0, 12) })
+}
+
 export interface ReviseResult {
   text: string
   textureBefore: number | null

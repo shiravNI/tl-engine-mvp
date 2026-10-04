@@ -7,7 +7,7 @@ import { useAuth } from '@/state/AuthContext'
 /** Minimal chrome: the drafter is the app. The profile menu (top right)
  * is where the person's Core, their Voice Card, lives. */
 export function TopBar() {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, onboardingCompletedAt } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -61,6 +61,9 @@ export function TopBar() {
               <p className="truncate px-3 pb-1 pt-2 text-[11.5px] text-muted">{profile.email}</p>
               <MenuItem icon="core" label="Core" hint="Your Voice Card" onClick={() => go('/voice-card')} />
               <MenuItem icon="pen" label="Drafter" onClick={() => go('/')} />
+              {onboardingCompletedAt === null && (
+                <MenuItem icon="spark" label="Finish voice setup" onClick={() => go('/voice-setup')} />
+              )}
               <div className="my-1 h-px bg-border-soft" />
               <MenuItem
                 icon="signout"
@@ -84,7 +87,7 @@ function MenuItem({
   hint,
   onClick,
 }: {
-  icon: 'core' | 'pen' | 'signout'
+  icon: 'core' | 'pen' | 'spark' | 'signout'
   label: string
   hint?: string
   onClick: () => void

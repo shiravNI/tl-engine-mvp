@@ -38,10 +38,15 @@ const OPENING: ChatTurn = {
     "Hi! I'm going to interview you for about 40 minutes so I can learn how you think and how you write. One question at a time, and no wrong answers. Let's start easy: tell me about what you do. Your role, your company, how long you've been in this world. Talk to me like you're explaining it to someone smart who doesn't know your field.",
 };
 
-/** The voice interview as a real conversation (the linkedin-voice-setup
+/** `embedded` renders it inside the app shell (under the shared top bar) instead of as its own full-screen page.
+ *
+ * The voice interview as a real conversation (the linkedin-voice-setup
  * skill, run live by `interview-chat`). In `demo` mode nothing is read
  * from or written to the account — it's a sandbox for trying the flow. */
-export function InterviewChatPage({ demo = false }: { demo?: boolean } = {}) {
+export function InterviewChatPage({
+  demo = false,
+  embedded = false,
+}: { demo?: boolean; embedded?: boolean } = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { profile, refreshOnboardingState } = useAuth();
@@ -172,12 +177,21 @@ export function InterviewChatPage({ demo = false }: { demo?: boolean } = {}) {
     );
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex h-[58px] flex-none items-center gap-2.5 border-b border-border bg-surface px-5">
-        <div className="flex h-[26px] w-[26px] items-center justify-center rounded-[9px] bg-espresso font-mono text-[11px] font-medium text-cream">
-          TL
-        </div>
-        <span className="text-[13px] font-semibold">TL Engine</span>
+    <div className={cx("flex flex-col", embedded ? "h-[calc(100vh-58px)]" : "h-screen")}>
+      <header
+        className={cx(
+          "flex flex-none items-center gap-2.5 border-b border-border bg-surface px-5",
+          embedded ? "h-[46px]" : "h-[58px]",
+        )}
+      >
+        {!embedded && (
+          <>
+            <div className="flex h-[26px] w-[26px] items-center justify-center rounded-[9px] bg-espresso font-mono text-[11px] font-medium text-cream">
+              TL
+            </div>
+            <span className="text-[13px] font-semibold">TL Engine</span>
+          </>
+        )}
         <Pill>
           {demo
             ? scripted

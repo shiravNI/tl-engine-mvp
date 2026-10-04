@@ -10,13 +10,13 @@ import { Pill } from '@/components/primitives/Pill'
 import { VoiceCardUploadDialog } from '@/features/onboarding/VoiceCardUploadDialog'
 import { cx } from '@/lib/cx'
 
-/** Interview map: the 7 phases, set expectations before starting — plus a
- * second entry point for someone who already has a Voice Card written up
- * (e.g. from the `linkedin-voice-setup` skill) and wants to upload it
- * instead of re-answering everything from scratch. */
-export function OnboardingMapPage() {
+/** The welcome in front of the voice interview: the 7 phases, set
+ * expectations, plus a second entry point for someone who already has a
+ * Voice Card (e.g. from the `linkedin-voice-setup` skill) and wants to
+ * upload it instead. Shown inside the app shell, not as its own page. */
+export function OnboardingMapPage({ onStart }: { onStart: () => void }) {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, refreshOnboardingState } = useAuth()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [hasProgress, setHasProgress] = useState(false)
 
@@ -34,23 +34,16 @@ export function OnboardingMapPage() {
   async function handleSkip() {
     if (profile) {
       await upsertOnboardingState(profile.userId, { skipped: true })
+      await refreshOnboardingState()
     }
     navigate('/')
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex h-[58px] flex-none items-center gap-2.5 border-b border-border bg-surface px-5">
-        <div className="flex h-[26px] w-[26px] items-center justify-center rounded-[9px] bg-espresso font-mono text-[11px] font-medium text-cream">
-          TL
-        </div>
-        <span className="text-[13px] font-semibold">TL Engine</span>
-        <Pill>First-time setup</Pill>
-      </header>
-
+    <div className="flex flex-col">
       <div className="mx-auto flex w-full max-w-[820px] flex-col gap-6 px-6 py-10">
         <div>
-          <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted">Before we start</p>
+          <div className="mb-2"><Pill>Step 1 · Voice setup</Pill></div>
           <h1 className="text-[26px] font-bold tracking-tight">This is a real interview, not a form.</h1>
           <p className="mt-2 max-w-[560px] text-[13px] leading-relaxed text-body">
             About 40 minutes, one question at a time. Everything you say builds the Voice Card that every
@@ -86,7 +79,7 @@ export function OnboardingMapPage() {
         </div>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-3">
-          <Button variant="primary" className="px-4 py-3" onClick={() => navigate('/onboarding/interview')}>
+          <Button variant="primary" className="px-4 py-3" onClick={onStart}>
             {hasProgress ? 'Continue the interview' : 'Start the interview'}
           </Button>
           <Button variant="secondary" onClick={() => setUploadOpen(true)}>
@@ -94,7 +87,7 @@ export function OnboardingMapPage() {
             Upload an existing Voice Card
           </Button>
           <Button variant="ghost" onClick={() => void handleSkip()}>
-            Skip to a quick version — I'll fill in Core later
+            Skip for now, I'll set up my voice later
           </Button>
         </div>
       </div>

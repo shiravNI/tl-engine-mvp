@@ -114,7 +114,7 @@ export function VoiceCardUploadDialog({ open, onOpenChange }: VoiceCardUploadDia
       }
 
       onOpenChange(false)
-      navigate('/onboarding/interview')
+      navigate('/voice-setup')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong saving your Voice Card.')
       setSaving(false)

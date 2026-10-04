@@ -3,28 +3,6 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/state/AuthContext'
 import { RouteFallback } from '@/routes/RouteFallback'
 
-/**
- * Guards `/` (the Drafter). No provider tree to mount here beyond auth
- * itself — this MVP has exactly one protected page and no global
- * ContentContext-style state, unlike the original app's `RequireAuth`.
- */
-export function RequireAuth({ children }: { children: ReactNode }) {
-  const { status, onboardingCompletedAt, onboardingSkipped } = useAuth()
-  const location = useLocation()
-
-  if (status === 'loading') return <RouteFallback />
-  if (status === 'unauthenticated') {
-    return <Navigate to="/login" replace state={{ from: location }} />
-  }
-  // Still loading onboarding_state (a beat after profile resolves).
-  if (onboardingCompletedAt === undefined) return <RouteFallback />
-  if (onboardingCompletedAt === null && !onboardingSkipped) {
-    return <Navigate to="/onboarding" replace />
-  }
-
-  return <>{children}</>
-}
-
 /** Guards `/login` — a signed-in user shouldn't see the login gate again. */
 export function RequireAnonymous({ children }: { children: ReactNode }) {
   const { status } = useAuth()
@@ -36,13 +14,11 @@ export function RequireAnonymous({ children }: { children: ReactNode }) {
 }
 
 /**
- * Guards `/onboarding` + `/onboarding/interview`. Checks
- * `onboarding_state.completed_at`, not just auth, so a user who already
- * finished onboarding can't silently re-run it and overwrite their Voice
- * Card. A user who only *skipped* it can still return (they haven't
- * completed it), which is what lets "finish later" mean something.
+ * Guards `/voice-setup`. Someone who already finished the interview is
+ * sent to their Voice Card instead, so re-entering can't silently overwrite
+ * it. Someone who only skipped it can come back and finish.
  */
-export function RequireOnboardingIncomplete({ children }: { children: ReactNode }) {
+export function RequireVoiceSetupOpen({ children }: { children: ReactNode }) {
   const { status, onboardingCompletedAt } = useAuth()
   const location = useLocation()
 
@@ -51,7 +27,7 @@ export function RequireOnboardingIncomplete({ children }: { children: ReactNode 
     return <Navigate to="/login" replace state={{ from: location }} />
   }
   if (onboardingCompletedAt === undefined) return <RouteFallback />
-  if (onboardingCompletedAt !== null) return <Navigate to="/" replace />
+  if (onboardingCompletedAt !== null) return <Navigate to="/voice-card" replace />
 
   return <>{children}</>
 }

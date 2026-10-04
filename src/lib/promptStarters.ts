@@ -16,7 +16,10 @@ export const PROMPT_STARTERS: string[] = [
   'A question you get asked constantly, answered properly for once',
 ]
 
-export function pickPromptStarters(count = 4): string[] {
-  const shuffled = [...PROMPT_STARTERS].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, count)
+/** A random subset; pass `exclude` (what's on screen now) so a shuffle
+ * always shows something different. */
+export function pickPromptStarters(count = 4, exclude: string[] = []): string[] {
+  const pool = PROMPT_STARTERS.filter((p) => !exclude.includes(p))
+  const source = pool.length >= count ? pool : PROMPT_STARTERS
+  return [...source].sort(() => Math.random() - 0.5).slice(0, count)
 }

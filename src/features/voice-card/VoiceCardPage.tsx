@@ -5,6 +5,7 @@ import { fetchSynthesizedVoiceCard, type StoredVoiceCard } from '@/data/services
 import { formatCardDate, voiceCardToMarkdown } from '@/lib/voiceCardMarkdown'
 import { Button } from '@/components/primitives/Button'
 import { Card } from '@/components/primitives/Card'
+import { Icon } from '@/components/icons/Icon'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -67,7 +68,7 @@ export function VoiceCardPage() {
             It's written from your interview and then lives here, in your profile. Everything the drafter writes is
             measured against it.
           </p>
-          <Link to="/onboarding/interview">
+          <Link to="/voice-setup">
             <Button variant="primary">Start or continue the interview</Button>
           </Link>
         </Card>
@@ -94,6 +95,12 @@ export function VoiceCardPage() {
   return (
     <div className="mx-auto w-full max-w-[780px] px-6 py-8">
       <div className="mb-3 flex items-center justify-end gap-2">
+        <Link to="/">
+          <Button variant="primary" size="sm">
+            <Icon name="pen" className="h-[13px] w-[13px]" />
+            Start drafting
+          </Button>
+        </Link>
         <Button variant="secondary" size="sm" onClick={download}>
           Download .md
         </Button>

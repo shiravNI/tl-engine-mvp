@@ -355,7 +355,7 @@ export function DrafterPage() {
                 <div>
                   <p>{error ?? notice}</p>
                   {error?.includes(THIN_VOICE_CARD_MESSAGE) && (
-                    <a href="/onboarding/interview" className="mt-1 inline-block font-semibold underline">
+                    <a href="/voice-setup" className="mt-1 inline-block font-semibold underline">
                       Continue your Voice Card interview
                     </a>
                   )}
