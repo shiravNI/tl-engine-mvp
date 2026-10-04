@@ -9,11 +9,11 @@ const LoginPage = lazy(() => import('@/features/onboarding/LoginPage').then((m) 
 const OnboardingMapPage = lazy(() =>
   import('@/features/onboarding/OnboardingMapPage').then((m) => ({ default: m.OnboardingMapPage })),
 )
-const InterviewPage = lazy(() =>
-  import('@/features/onboarding/InterviewPage').then((m) => ({ default: m.InterviewPage })),
+const InterviewChatPage = lazy(() =>
+  import('@/features/onboarding/InterviewChatPage').then((m) => ({ default: m.InterviewChatPage })),
 )
 const InterviewDemoPage = lazy(() =>
-  import('@/features/onboarding/InterviewPage').then((m) => ({ default: () => <m.InterviewPage demo /> })),
+  import('@/features/onboarding/InterviewChatPage').then((m) => ({ default: () => <m.InterviewChatPage demo /> })),
 )
 const DrafterPage = lazy(() => import('@/features/drafter/DrafterPage').then((m) => ({ default: m.DrafterPage })))
 const VoiceCardPage = lazy(() =>
@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
     element: (
       <RequireOnboardingIncomplete>
         <Suspense fallback={<RouteFallback />}>
-          <InterviewPage />
+          <InterviewChatPage />
         </Suspense>
       </RequireOnboardingIncomplete>
     ),
@@ -61,8 +61,8 @@ export const router = createBrowserRouter([
   },
   {
     // Full interview, zero persistence — a test page for walking through
-    // the real flow. Needs a signed-in session only so the personalized
-    // question generation can run; nothing it does is written anywhere.
+    // the real flow. Needs a signed-in session only so the edge function
+    // accepts the call; nothing it does is written anywhere.
     path: '/interview-demo',
     element: (
       <RequireSession>

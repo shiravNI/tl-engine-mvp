@@ -65,6 +65,7 @@ create table public.onboarding_state (
   completed_at               timestamptz,
   skipped                    boolean not null default false,
   generated_opinion_questions jsonb,
+  chat_transcript jsonb,          -- the live interview-chat conversation: [{role, content, options?}]
   updated_at                 timestamptz not null default now()
 );
 alter table public.onboarding_state enable row level security;

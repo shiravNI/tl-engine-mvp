@@ -1,27 +1,28 @@
-// Builds a plain-English Q&A transcript from the raw interview answers —
-// this is what gets sent to `synthesize-voice-card` instead of raw
-// question/option ids, so the edge function never needs its own copy of
-// the question catalog (which lives client-side in onboardingCatalog.ts).
-import type { OnboardingQuestion } from '@/data/onboardingCatalog'
-import type { InterviewAnswerInput } from '@/lib/voiceCard'
-
+// Turns the interview chat into the {prompt, answer} pairs
+// `synthesize-voice-card` expects: each interviewer message is the
+// "question", the person's following message(s) are the "answer".
 export interface TranscriptEntry {
   prompt: string
   answer: string
 }
 
-export function buildInterviewTranscript(
-  answers: Map<string, InterviewAnswerInput>,
-  questions: OnboardingQuestion[],
-): TranscriptEntry[] {
+export interface ChatTurn {
+  role: 'user' | 'assistant'
+  content: string
+  /** Tappable choices that came with an assistant question. */
+  options?: string[] | null
+}
+
+export function buildChatEntries(turns: ChatTurn[]): TranscriptEntry[] {
   const entries: TranscriptEntry[] = []
-  for (const question of questions) {
-    const answer = answers.get(question.id)
-    if (!answer) continue
-    const optionLabel = question.options.find((o) => o.id === answer.selectedOptionId)?.label
-    const parts = [optionLabel, answer.freeTextAnswer?.trim()].filter(Boolean)
-    if (parts.length === 0) continue
-    entries.push({ prompt: question.prompt, answer: parts.join(' — ') })
+  let prompt: string | null = null
+  for (const turn of turns) {
+    if (turn.role === 'assistant') {
+      prompt = turn.content
+    } else if (prompt !== null) {
+      entries.push({ prompt, answer: turn.content })
+      prompt = null
+    }
   }
   return entries
 }
