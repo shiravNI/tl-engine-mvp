@@ -247,10 +247,8 @@ export function DrafterPage() {
   }
 
   async function copy() {
-    const isNewsletter = current?.format === 'article'
-    const text = isNewsletter && title.trim() ? `Subject: ${title.trim()}\n\n${body}` : body
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(body)
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     } catch {
@@ -261,8 +259,8 @@ export function DrafterPage() {
   if (!profile) return null
 
   const words = body.trim() ? body.trim().split(/\s+/).length : 0
-  const isNewsletter = current?.format === 'article'
-  const overLimit = !isNewsletter && body.length > LINKEDIN_CHAR_LIMIT
+  const isArticle = current?.format === 'article'
+  const overLimit = !isArticle && body.length > LINKEDIN_CHAR_LIMIT
   const busy = generating || revising || humanizing
   const editedCount = drafts.filter(wasEdited).length
 
@@ -287,7 +285,7 @@ export function DrafterPage() {
             <button className="min-w-0 flex-1 text-left" onClick={() => void openDraft(d)}>
               <p className="truncate text-[12.5px] font-semibold text-ink">{draftLabel(d)}</p>
               <p className="text-[11px] text-muted">
-                {d.format === 'article' ? 'Newsletter' : 'Post'}
+                {d.format === 'article' ? 'Article' : 'Post'}
                 {d.aiOriginal ? ' · AI-drafted' : ''}
               </p>
             </button>
@@ -373,7 +371,7 @@ export function DrafterPage() {
               <input
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
-                placeholder={isNewsletter ? 'Subject line' : 'Title (optional, just for you)'}
+                placeholder={isArticle ? 'Article headline' : 'Title (optional, just for you)'}
                 className="mb-4 w-full bg-transparent font-display text-[24px] font-bold tracking-tight text-ink outline-none placeholder:text-muted-2"
               />
               <textarea
@@ -391,7 +389,7 @@ export function DrafterPage() {
 
             <div className="mt-2 flex items-center gap-3 px-1 text-[11.5px] text-muted">
               <span>{words} words</span>
-              {!isNewsletter && (
+              {!isArticle && (
                 <span className={overLimit ? 'font-semibold text-danger-fg' : ''}>
                   {body.length} / {LINKEDIN_CHAR_LIMIT} characters
                 </span>

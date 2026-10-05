@@ -77,7 +77,7 @@ export interface Draft {
   roastVerdict: string
   roastFlags: RoastFlag[]
   sourceLabel: string | null
-  /** 'article' is how a newsletter issue is stored (the shared drafts table only allows post|article). */
+  /** A LinkedIn post, or a long-form LinkedIn article. */
   format: 'post' | 'article'
   /** What the AI first wrote, kept so edits can be learned from. null for drafts the person started blank. */
   aiOriginal: string[] | null

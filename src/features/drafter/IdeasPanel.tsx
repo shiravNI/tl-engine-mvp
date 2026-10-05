@@ -123,7 +123,7 @@ export function IdeasPanel({ busy, onDraft }: IdeasPanelProps) {
         />
         <div className="flex items-center gap-2">
           <div className="flex rounded-full border border-border p-0.5">
-            {(['post', 'newsletter'] as const).map((f) => (
+            {(['post', 'article'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFormat(f)}
@@ -132,7 +132,7 @@ export function IdeasPanel({ busy, onDraft }: IdeasPanelProps) {
                   format === f ? 'bg-espresso text-cream' : 'text-muted hover:text-ink',
                 )}
               >
-                {f === 'post' ? 'LinkedIn post' : 'Newsletter'}
+                {f === 'post' ? 'LinkedIn post' : 'LinkedIn article'}
               </button>
             ))}
           </div>

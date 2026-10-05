@@ -1,6 +1,6 @@
 // Supabase Edge Function: draft-post
 //
-// Writes a LinkedIn post (or newsletter issue) from a rough idea, in the
+// Writes a LinkedIn post (or long-form LinkedIn article) from a rough idea, in the
 // caller's own voice, and learns from how they edit: the 4 most recent
 // AI-draft -> their-final pairs and their direct feedback are fed back into
 // every generation. Runs on the caller's JWT/RLS, never the service role.
@@ -25,7 +25,7 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// House rules, distilled from the team's humanize / bs-detector / newsletter
+// House rules, distilled from the team's humanize / bs-detector
 // skills (paraphrased, not copied).
 const HOUSE_RULES = `HARD WRITING RULES (no exceptions)
 - Never use an em dash or en dash. Use a period, comma or colon, or restructure the sentence.
@@ -207,7 +207,7 @@ async function authedClient(req: Request): Promise<{ supabase: any; userId: stri
 
 const FORMAT_GUIDE: Record<string, string> = {
   post: `FORMAT: a single LinkedIn post, 150-300 words. Open with a specific, surprising detail rather than a broad statement. Short paragraphs, line breaks for breath. No hashtags wall. End on a specific question they genuinely want answered, or just stop.`,
-  newsletter: `FORMAT: an email newsletter issue, 400-800 words. One big idea only. The "title" is the subject line: under 50 characters, curiosity or specific value, no clickbait, lowercase often feels more personal. The first sentence must earn the scroll (a story moment, surprising fact or confession; never "This week I want to talk about"). Write like emailing one smart person. Short paragraphs (1-3 sentences), the occasional bolded key line is fine. End with connection and exactly one ask (reply, forward, or a teaser for next issue).`,
+  article: `FORMAT: a LinkedIn article, 900-1400 words, one clear argument. The "title" is the headline: specific and human, under 90 characters, promising something only this writer can deliver (no clickbait, no "ultimate guide"). Open with a concrete scene, number or moment in the first two sentences, then state the point. Build it in 3 to 5 sections, each starting with a short plain-text subheading on its own line (no markdown symbols, no numbering). Every section earns its place with an example, a detail or a reason; cut anything generic. Keep paragraphs to 1-4 sentences. Close by landing the point, and optionally one specific question or next step; no summary of what you just said.`,
 };
 
 const BS_DETECTOR = `BEFORE WRITING, run a BS check on the idea itself. Is there an exclusive insight (proprietary data, lived experience, a genuinely contrarian POV with a reason, or cross-case pattern recognition) and a unique angle that makes THIS writer the right narrator? Verdict: "green" (real anchor present in the idea or their Voice Card), "yellow" (good topic, but as given it could be written by anyone), or "red" (generic topic and nothing exclusive to hang it on). Still write the best honest draft you can from their Voice Card, but for yellow/red leave bracketed placeholders where their specific number, moment or result belongs, and say in "missing" exactly what one thing would make it green.`;
@@ -222,7 +222,7 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, 1500) : "";
-    const format = body.format === "newsletter" ? "newsletter" : "post";
+    const format = body.format === "article" ? "article" : "post";
     if (!topic) return json({ error: "Give it a topic or rough idea to draft from." }, 422);
 
     const ctx = await loadWriterContext(supabase);
@@ -245,7 +245,7 @@ Respond with ONLY a JSON object, no markdown fences:
 TOPIC / ROUGH IDEA FROM THE PERSON:
 """${topic}"""`;
 
-    const maxTokens = format === "newsletter" ? 3000 : 1500;
+    const maxTokens = format === "article" ? 4500 : 1500;
     let parsed = extractJson(await callClaude({ system, user, maxTokens, apiKey: ANTHROPIC_API_KEY, model: MODEL }));
     let paragraphs = Array.isArray(parsed?.paragraphs) ? (parsed!.paragraphs as unknown[]).map(String) : [];
     if (paragraphs.length === 0) return json({ error: "The drafting model returned no usable draft. Try again." }, 502);
@@ -281,7 +281,7 @@ TOPIC / ROUGH IDEA FROM THE PERSON:
         paragraphs,
         excerpt: paragraphs[0]?.slice(0, 140) ?? "",
         stage: "draft",
-        format: format === "newsletter" ? "article" : "post",
+        format,
         voice_match: ctx.completeness,
         slop_score: Math.min(10, issues.length * 3),
         roast_verdict: issues.length === 0 ? "No AI tells caught. Give it your own read before it ships." : "A few tells survived a revision. Worth a manual pass.",

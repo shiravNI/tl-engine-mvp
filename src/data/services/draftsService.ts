@@ -77,7 +77,7 @@ async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T
   return data as T
 }
 
-export type DraftFormat = 'post' | 'newsletter'
+export type DraftFormat = 'post' | 'article'
 
 export async function draftPost(
   topic: string,
